@@ -13,54 +13,54 @@ int new(ring_s *ring){ //cria o anel com um nó com s=self
 
 }
 
-int create_TCP_Server(int fd, struct addrinfo *hints, struct addrinfo **res, ring_s *ring, struct sockaddr_in *addr, socklen_t *addrlen){
-    int errcode;
-    ssize_t n;
-    fd = socket(AF_INET, SOCK_STREAM, 0); //TCP
-    if(fd==-1) /*error*/ {
-        printf("Erro ao ligar socket TCP Server\n");
-        exit(1);
-    }
-
-    errcode = getaddrinfo("127.0.0.1", ring->me.PORT, hints, res);
-    if(errcode != 0){
-        
-        exit(1);
-    }else printf("Socket ligada\n");
-    
-
-    n=bind(fd, res->ai_addr, res->ai_addrlen);
-    if(n==-1){
-        exit(1);
-    }else printf("Erro no bind\n");
-
-    if(listen(fd,5)==-1)exit(1);
-
-    while(1){
-        addrlen = sizeof(addr);
-        /*if((newfd=accept(fd, (struct sockaddr*)&addr, &addrlen))==-1 exit(1);
-        //exit(1);*/
-
-        if((fd=accept(fd, (struct sockaddr*)&addr,
-                        &addrlen))==-1)
-                    /*error*/exit(1);
-
-        n=read(fd,/*buffer*/NULL,128);
-        if(n==-1)exit(1);
-        write(1, "received: ", 10);
-        write(1, /*buffer*/NULL, n);
-        n=write(fd, /*buffer*/NULL, n);
-        if(n==-1)exit(1); 
-
-        close(fd);
-    }
-
+int verify_ip(char* ip_string){
+    int init_size = strlen(ip_string);
+	char delim[] = ".";
+    char *ptr = strtok(ip_string, delim);
+    //printf("ip_string= %s", ip_string);
+    while(ptr != NULL)
+	{
+		//printf("'%s'\n", ptr);
+        if(atoi(ptr)<0 || atoi(ptr)>255){
+            printf("IP not valid\n");
+            return 1;
+        }
+		ptr = strtok(NULL, delim);
+	}
+    printf("Valid IP!\n");
+    return 0;
 }
 
+int valid_arguments(int argc, char *argv[]){
+    //return 1 if failure, return 0 if valid
+    int i=0;
+    //argv[0]= ring
+    //argv[1]= i
+    //argv[2]= ip
+    //argv[3]=port
 
+    if(argc<4){
+        printf("You've Entered Too Few Arguments. Usage: ring i i.IP i.PORT\n");
+        return(1);
+    }else if(!(strcmp(argv[0],"ring\0")|| strcmp(argv[0],"RING\0"))){   //validar o primeiro argv "ring"
+        printf("Usage: ring i i.IP i.PORT\n");
+        return(1);
+    }else if(verify_ip(argv[2])){                                       //validar o IP
+        printf("Each Octave of the IP must be between 0 and 255 for it to be valid!\n");
+        return(1);
+    }else if(atoi(argv[1]) < 0 || atoi(argv[1]) > 31){                  //validar i
+        printf("O i tem de ser um numero entre 0 e 31.\n");
+        return(1);
+    }else 
+    
+    //validar o IP
+    
+
+    return(0);
+}
 
 int main(int argc, char *argv[]){
-    printf("Program started\n");
+    printf("Program started\nUsage: ring i i.IP i.PORT\n");
     //CENAS DO SELECT()                     //
     int fd_stdin, fd_stdout;                // variavel file descriptor                                   
     char buf[MAX_CHAR];                     // buffer que vai guardar os caracteres
@@ -71,24 +71,24 @@ int main(int argc, char *argv[]){
     fd_set writefds;
     struct timeval timeout;
              
-    
-    if(atoi(argv[1]) < 0 || atoi(argv[1]) > 31){
-        printf("O i tem de ser um numero entre 0 e 31.\n");
-        exit(-1);
-    }
+    ring_s ring;
+
+    //argv[1]= ring
+    //argv[2]= i
+    //argv[3]= ip
+    //argv[4]=port
 
     
-    ring_s ring;
+
+    if(valid_arguments(argc - 1, argv + 1))exit(-1); //se a porta ou ip não estiverem válidos então o programa fecha
+    
     ring.me.IP= (char*) malloc(strlen(argv[2]+1)*sizeof(char));
     ring.me.PORT= (char*) malloc(strlen(argv[3]+1)*sizeof(char));
-    memcpy(ring.me.IP, argv[2], sizeof(argv[2])+1);
-    printf("o meu ip é %s\n", ring.me.IP);
-    //passar argv[3] para inteiro
-    //ring.me.PORT = atoi(argv[3]);
-    memcpy(ring.me.PORT, argv[3], sizeof(argv[3])+1);
-    printf("o minha porta é %s\n", ring.me.PORT);
     
-    new(&ring);
+    memcpy(ring.me.IP, argv[3], sizeof(argv[3])+1);
+    memcpy(ring.me.PORT, argv[4], sizeof(argv[4])+1);
+    
+    //new(&ring);
 
     int fd, errcode, newfd; 
     ssize_t n;
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]){
     hints.ai_socktype = SOCK_DGRAM;
     printf("antes do TCP server");
     
-    create_TCP_Server(fd, &hints, &res, &ring, &addr, &addrlen);
+    //create_TCP_Server(fd, &hints, &res, &ring, &addr, &addrlen);
     //create_TCP_Client();
 
     while(1){
