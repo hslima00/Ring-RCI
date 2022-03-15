@@ -1,0 +1,4 @@
+
+o new corre sempre no inicio de cada instancia ou é corre apenas na primeira? 
+
+fazer um if antes do new() 
