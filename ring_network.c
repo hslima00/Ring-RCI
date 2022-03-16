@@ -208,7 +208,10 @@ int main(int argc, char *argv[]){
                 if(strcmp(buf, "s\n")==0){ //show
                     show(&ring);
                 } 
-            }else{
+            }else if(strcmp(buf, "\n")==0){
+                continue;
+            }else
+                {
                 //separar string 
                 split_string(buf); //isto vai ser recebido por sockets de clientes 
                 // pentry: 
