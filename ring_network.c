@@ -22,39 +22,71 @@ int new(ring_s *ring){ //cria o anel com um nó com s=self
 int verify_ip(char* ip_string){
     int init_size = strlen(ip_string);
 	char delim[] = ".";
+    printf("ip_string= %s\n", ip_string);
     char *ptr = strtok(ip_string, delim);
-    //printf("ip_string= %s", ip_string);
+    int point_counter=0;
     while(ptr != NULL)
 	{
 		//printf("'%s'\n", ptr);
-        if(atoi(ptr)<0 || atoi(ptr)>255){
+        if(atoi(ptr)<0 || atoi(ptr)>255 || point_counter > 4){
             printf("IP not valid\n");
             return 1;
         }
+        point_counter++;
+        printf("point_counter= %d\n", point_counter);
 		ptr = strtok(NULL, delim);
 	}
     printf("Valid IP!\n");
     return 0;
 }
 
+int split_string(char* command_string){
+    int init_size = strlen(command_string);
+	char delim[] = " ";
+    printf("command_string= %s", command_string);
+    char *ptr = strtok(command_string, delim);
+    char *ip_copy;
+    int arg_counter = 0;
+    char *args[4];
+    while(ptr != NULL)
+	{
+		printf("'%s'\n", ptr);
+        args[arg_counter] = (char*) malloc(strlen(ptr+1)*sizeof(char));
+        strcpy(args[arg_counter],ptr);
+        arg_counter++;
+		ptr = strtok(NULL, delim);
+	}
+    for(int i = 0; i<arg_counter; i++){
+        printf("arg[%d]=%s\n",i, args[i] );
+    }
+    ip_copy = (char*) malloc(strlen(args[2]+1)*sizeof(char));
+    strcpy(ip_copy, args[2]);
+    if(verify_ip(ip_copy)==1){
+        printf("The IP entered in the command was not valid.\n");
+        return 1; 
+    }
+     for(int i = 0; i<arg_counter; i++){
+        printf("arg[%d]=%s\n",i, args[i] );
+    }
+    //printf("Valid IP!\n");
+    return 0;
+}
+
 int valid_arguments(int argc, char *argv[]){
     //return 1 if failure, return 0 if valid
     int i=0;
-    //argv[0]= ring
-    //argv[1]= i
-    //argv[2]= ip
-    //argv[3]=port
+    
+    //argv[0]= i
+    //argv[1]= ip
+    //argv[2]=port
 
-    if(argc<4){
+    if(argc<3){
         printf("You've Entered Too Few Arguments. Usage: ring i i.IP i.PORT\n");
         return(1);
-    }else if(!(strcmp(argv[0],"ring\0")|| strcmp(argv[0],"RING\0"))){   //validar o primeiro argv "ring"
-        printf("Usage: ring i i.IP i.PORT\n");
-        return(1);
-    }else if(verify_ip(argv[2])){                                       //validar o IP
+    }else if(verify_ip(argv[1])){                                       //validar o IP
         printf("Each Octave of the IP must be between 0 and 255 for it to be valid!\n");
         return(1);
-    }else if(atoi(argv[1]) < 0 || atoi(argv[1]) > 31){                  //validar i
+    }else if(atoi(argv[0]) < 0 || atoi(argv[0]) > 31){                  //validar i
         printf("O i tem de ser um numero entre 0 e 31.\n");
         return(1);
     }else 
@@ -65,6 +97,41 @@ int valid_arguments(int argc, char *argv[]){
     return(0);
 }
 
+void show(ring_s *ring){
+    printf("My ID:%d\nMy IP:%s\nMy PORT:%s\n",ring->me.ID,ring->me.IP,ring->me.PORT);
+    if(ring->pred.IP!=NULL || ring->pred.PORT!=NULL){
+        printf("\n----------PRED-----------\n");
+        printf("ID:%d\n", ring->pred.ID);
+        printf("IP:%s\n", ring->pred.IP);
+        printf("PORT:%s\n", ring->pred.PORT);
+    }
+    if(ring->suc.IP!=NULL || ring->suc.PORT!=NULL){
+        printf("\n----------SUC-----------\n");
+        printf("ID:%d\n", ring->suc.ID);
+        printf("IP:%s\n", ring->suc.IP);
+        printf("PORT:%s\n", ring->suc.PORT);
+    }
+}
+
+void initialize_ring_memory(ring_s *ring,int argc, char *argv[]){
+    for(int i=0; i<5; i++){
+        printf("arg[%d]=%s\n", i, argv[i]);
+    }
+    ring->me.ID= atoi(argv[0]);
+    ring->me.IP= (char*) malloc(strlen(argv[1]+1)*sizeof(char));
+    ring->me.PORT= (char*) malloc(strlen(argv[2]+1)*sizeof(char));
+    
+    ring->pred.ID=-1;
+    ring->suc.ID=-1;
+   
+    ring->pred.IP=      NULL;
+    ring->pred.PORT=    NULL;
+    ring->suc .IP=      NULL;
+    ring->suc .PORT=    NULL;
+ 
+}
+
+
 int main(int argc, char *argv[]){
     printf("Program started\nUsage: ring i i.IP i.PORT\n");
     //CENAS DO SELECT()                     //
@@ -72,11 +139,10 @@ int main(int argc, char *argv[]){
     char buf[MAX_CHAR];                     // buffer que vai guardar os caracteres
     int ret /*return do read*/, sret /*return do select*/, ret2;     //  
     fd_stdin=0;
-    fd_stdout=1;                                 //
+    fd_stdout=1;                            //
     fd_set readfds;                         //
     fd_set writefds;
     struct timeval timeout;
-    char str[20];
              
     ring_s ring;
 
@@ -84,17 +150,15 @@ int main(int argc, char *argv[]){
     //argv[2]= i
     //argv[3]= ip
     //argv[4]=port
-
+    initialize_ring_memory(&ring, argc-1, argv+1); //sets pred and suc memory to NULL (para n ter lixo) and mallocs memory for self node.
     
 
     if(valid_arguments(argc - 1, argv + 1))exit(-1); //se a porta ou ip não estiverem válidos então o programa fecha
     
-    ring.me.IP= (char*) malloc(strlen(argv[2]+1)*sizeof(char));
-    ring.me.PORT= (char*) malloc(strlen(argv[3]+1)*sizeof(char));
     
-    memcpy(ring.me.IP, argv[3], sizeof(argv[3])+1);
-    memcpy(ring.me.PORT, argv[4], sizeof(argv[4])+1);
-    ring.me.ID= atoi(argv[2]);
+    
+   
+    
     //new(&ring);
 
     int fd, errcode, newfd; 
@@ -133,9 +197,24 @@ int main(int argc, char *argv[]){
 
         }else{
             memset((void*)buf, 0, MAX_CHAR);
-            fgets(str, 20, stdin);
-            if(strcmp(buf, "new")){
+            fgets(buf, 20, stdin);
+            printf("buf=%s\n", buf);
+            ret = strcmp(buf, "n\n");
+            printf("ret=%d\n",ret);
+            if(strcmp(buf, "n\n")==0){
                 new(&ring);
+            }else if(strcmp(buf, "e\n")==0 || strcmp(buf, "s\n")==0 || strcmp(buf, "l\n")==0 || strcmp(buf, "ex\n")==0){
+                printf("e,s,l pressed\n");
+                if(strcmp(buf, "s\n")==0){ //show
+                    show(&ring);
+                } 
+            }else{
+                //separar string 
+                split_string(buf); //isto vai ser recebido por sockets de clientes 
+                // pentry: 
+                // verificar se existe o nó "pred", e se não tiver 
+                //
+
             }
             
            
