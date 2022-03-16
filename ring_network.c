@@ -1,15 +1,21 @@
 #include "header.h"
 
 int new(ring_s *ring){ //cria o anel com um nó com s=self 
+    if(ring->me.ID==ring->pred.ID){
+        printf("Ring already created\n");
+        return 0;
+    }else{
+        printf("Executa a função new()\n");
+        ring->pred.ID=ring->me.ID;
+        ring->pred.PORT=ring->me.PORT;
+        ring->pred.IP=ring->me.IP;
+
+        ring->suc.ID=ring->me.ID;
+        ring->suc.PORT=ring->me.PORT;
+        ring->suc.IP=ring->me.IP;
+    }
     
-    ring->pred.ID=ring->me.ID;
-    ring->pred.PORT=ring->me.PORT;
-    ring->pred.IP=ring->me.IP;
-
-    ring->suc.ID=ring->me.ID;
-    ring->suc.PORT=ring->me.PORT;
-    ring->suc.IP=ring->me.IP;
-
+    return 1;
 
 }
 
@@ -70,6 +76,7 @@ int main(int argc, char *argv[]){
     fd_set readfds;                         //
     fd_set writefds;
     struct timeval timeout;
+    char str[20];
              
     ring_s ring;
 
@@ -87,7 +94,7 @@ int main(int argc, char *argv[]){
     
     memcpy(ring.me.IP, argv[3], sizeof(argv[3])+1);
     memcpy(ring.me.PORT, argv[4], sizeof(argv[4])+1);
-    
+    ring.me.ID= atoi(argv[2]);
     //new(&ring);
 
     int fd, errcode, newfd; 
@@ -98,12 +105,11 @@ int main(int argc, char *argv[]){
     memset(&hints, 0 ,sizeof hints);
     hints.ai_family=AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
-    printf("antes do TCP server");
     
-    //create_TCP_Server(fd, &hints, &res, &ring, &addr, &addrlen);
-    //create_TCP_Client();
-
+    
+    
     while(1){
+
         FD_ZERO(&readfds);
         FD_ZERO(&writefds);
         FD_SET(fd_stdin, &readfds);
@@ -121,27 +127,21 @@ int main(int argc, char *argv[]){
             printf("erro no select\n");
 
         }else if(sret==0){
-
+            //Se passarem 10 segundos dá timeout
             printf("timeout, o return do select() é %d\n", sret);
             //check for messages
 
         }else{
-            //Se passarem 10 segundos dá timeout
-            printf("O return do select() é=%d\n", sret);
             memset((void*)buf, 0, MAX_CHAR);
+            fgets(str, 20, stdin);
+            if(strcmp(buf, "new")){
+                new(&ring);
+            }
+            
+           
 
-            //estamos a meter cenas no stdin
-            ret = read(fd_stdin, (void*)buf,MAX_CHAR);
 
-            //estamos a meter cenas no stdout
-            ret2 = write(fd_stdout, (void*)buf, MAX_CHAR);
-
-
-            if(ret != -1 && ret2 != -1){
-                printf("buf= %s\n", buf);
-            }else{
-                printf("Erro no read ou write\n");
-            } 
+         
         }
     }
 }
