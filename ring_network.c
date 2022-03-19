@@ -25,7 +25,7 @@ int new(ring_s *ring){ //cria o anel com um nó com s=self
 char* verify_ip(char* ip_string){
     int init_size = strlen(ip_string);
 	char delim[] = ".";
-    printf("ip_string= %s\n", ip_string);
+    //printf("ip_string= %s\n", ip_string);
     char *ip_string_copy;
     ip_string_copy = (char*) malloc(strlen(ip_string+1)*sizeof(char));
     strcpy(ip_string_copy, ip_string);
@@ -40,11 +40,11 @@ char* verify_ip(char* ip_string){
             return "error";
         }
         point_counter++;
-        printf("point_counter= %d\n", point_counter);
+        //printf("point_counter= %d\n", point_counter);
 		ptr = strtok(NULL, delim);
 	}
     //printf("IP no verify %s\n", ip_string_copy);
-    printf("Valid IP!\n");
+    //sprintf("Valid IP!\n");
 
     return ip_string_copy;
 }
@@ -206,113 +206,146 @@ int check(int exp, const char *msg){
     return(exp); 
 }
 
+int max(int x, int y)
+{
+	if (x > y)
+		return x;
+	else
+		return y;
+}
+
 int main(int argc, char *argv[]){
-    printf("Program started\nUsage: ring i i.IP i.PORT\n");
+
     //argv[1]= ring
     //argv[2]= i
     //argv[3]= ip
     //argv[4]=port
     //CENAS DO SELECT()                     //
-    int fd_stdin, fd_stdout;                // variavel file descriptor                                   
+                                   
     char buf[MAX_CHAR];                     // buffer que vai guardar os caracteres
     int ret /*return do read*/, sret /*return do select*/, ret2;     //                              //
     struct timeval timeout;
     ring_s ring;
+    struct sockaddr_in clinodeaddr, mynodeaddr;
+    socklen_t len;
+    ssize_t n; 
+    char* message = "Hello Client";
 
-    //fd and socket creation
-    fd_set TCP_sockets, UDP_sockets, TCP_sockets_cpy, UDP_sockets_cpy;
-    int server_socket = setup_server(SERVERPORT, SERVER_BACKLOG);
-    FD_ZERO(&TCP_sockets); /*sets the table with 0's*/
-    FD_SET(server_socket, &TCP_sockets); /* adding the server socket to the current set */
+    int listenfd;/*socket listen do tcp server*/
+    int connfd; /*socket tcp returned from connect*/
+    int udpfd; /*socket udp */
 
-    
+    int maxfdp1; /*max file descriptors inside table*/
+    fd_set rset, rsetcpy;
+
+    void sig_chld(int);
+
     initialize_ring_memory(&ring, argc-1, argv+1); //sets pred and suc memory to NULL (para n ter lixo) and mallocs memory for self node.
-    
 
     if(valid_arguments(argc - 1, argv + 1, &ring))exit(-1); //se a porta ou ip não estiverem válidos então o programa fecha
-    
-    
-    
-   
-    
-    //new(&ring);
 
-    int fd, errcode, newfd; 
-    ssize_t n;
-    socklen_t addrlen;
-    struct addrinfo hints,*res; 
-    struct sockaddr_in addr;
-    memset(&hints, 0 ,sizeof hints);
-    hints.ai_family=AF_INET;
-    hints.ai_socktype = SOCK_DGRAM;
+    /*create TCP listening socket and UDP*/
+                    /*TCP*/
+    listenfd = socket(AF_INET, SOCK_STREAM, 0);
+	bzero(&mynodeaddr, sizeof(mynodeaddr));
+	mynodeaddr.sin_family = AF_INET;
+	mynodeaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	mynodeaddr.sin_port = htons(atoi(ring.me.PORT));
+                    /*UDP*/
+    udpfd = socket(AF_INET, SOCK_DGRAM, 0);
+    pid_t childpid;
+    /*bind das sockets UDP e TCP ao "meu" ip e porta*/
+    bind(listenfd, (struct sockaddr*)&mynodeaddr, sizeof(mynodeaddr));
+	listen(listenfd, 10);
+    bind(udpfd, (struct sockaddr*)&mynodeaddr, sizeof(mynodeaddr));
+
+    /*clear file descriptor table/set */
+    FD_ZERO(&rset);
     
     
+    
+    // get maxfd
+	maxfdp1 = max(listenfd, udpfd) + 1;
     
     while(1){
 
-        TCP_sockets_cpy =  TCP_sockets; 
+        /*insert sockets in the fd set*/
+        FD_SET(listenfd, &rset);
+		FD_SET(udpfd, &rset);
+        FD_SET(STDIN_FILENO, &rset);
         
         timeout.tv_sec=10;
         timeout.tv_usec=0;
 
-        sret=select(5, &TCP_sockets_cpy, NULL,NULL, &timeout);
+        sret = select(maxfdp1+1, &rset, NULL, NULL, NULL);
         
-
-
         if(sret==-1){
-
             printf("erro no select\n");
-
-        }else if(sret==0){
-            //Se passarem 10 segundos dá timeout
-            printf("timeout, o return do select() é %d\n", sret);
-            //check for messages
-
-        }else{
-            memset((void*)buf, 0, MAX_CHAR);
-            fgets(buf, 20, stdin);
-            printf("buf=%s\n", buf);
-            ret = strcmp(buf, "n\n");
-            printf("ret=%d\n",ret);
-            if(strcmp(buf, "n\n")==0){
-                new(&ring);
-            }else if(strcmp(buf, "e\n")==0 || strcmp(buf, "s\n")==0 || strcmp(buf, "l\n")==0 || strcmp(buf, "ex\n")==0){
-                printf("e,s,l pressed\n");
-                if(strcmp(buf, "s\n")==0){ //show
-                    show(&ring);
-                } 
-            }else if(strcmp(buf, "\n")==0){
-                continue;
-            }else
-                {
-                //separar string 
-                split_string(buf); //isto vai ser recebido por sockets de clientes 
-                // pentry: 
-                // verificar se existe o nó "pred", e se não tiver 
-                //
-
-            }
-            
-            //agora que chamámos o select, ele muda a fd set e mete lá apenas as sockets que estão prontas para serem lidas 
-            //vamos iterar por elas todas 
-            for(int i = 0; i<FD_SETSIZE; i++){
-                if(FD_ISSET(i, &TCP_sockets_cpy)){ //check if the socket is set 
-                    printf("i dentro do for %d\n", i);
-                    if(i == server_socket){
-                        /*Se a socket do server está à espera de ser lida, é porque é um novo client*/
-                        int client_socket = accept_new_connection(server_socket);
-                        FD_SET(client_socket, &TCP_sockets_cpy); //meter o novo client na lista de sockets
-                    }else{
-                        handle_connection(i);
-                        FD_CLR(i, &TCP_sockets_cpy);
-                    }
-                }
-            } 
-
-           
-
-
-         
+            exit(0);
         }
-    }
-}
+
+        /*if tcp socket is readable then handle it by accepting the connection*/
+        if (FD_ISSET(listenfd, &rset)) {
+            len = sizeof(clinodeaddr);
+            connfd = accept(listenfd, (struct sockaddr*)&clinodeaddr, &len);
+            if ((childpid = fork()) == 0) {
+                close(listenfd);
+                bzero(buf, sizeof(buf));
+               
+                read(connfd, buf, sizeof(buf));
+                printf("Message From TCP client (pred): %s\n", buf);
+                
+                write(connfd, (const char*)message, sizeof(buf));
+                close(connfd);
+                exit(0);
+            }
+            close(connfd);
+        }
+
+        // if udp socket is readable receive the message.
+		if (FD_ISSET(udpfd, &rset)) {
+			len = sizeof(clinodeaddr);
+			bzero(buf, sizeof(buf));
+			n = recvfrom(udpfd, buf, sizeof(buf), 0,
+						(struct sockaddr*)&clinodeaddr, &len);
+			printf("Message from UDP client (shortcut): %s\n",buf);
+            //puts(buf);
+            /*   MESSAGE HANDLER PARA O SHORCUT */
+
+            /*a mensaguem recebida por udp é o buf*/
+			sendto(udpfd, (const char*)message, sizeof(buf), 0,
+				(struct sockaddr*)&clinodeaddr, sizeof(clinodeaddr));
+		}
+        
+        if(FD_ISSET(STDIN_FILENO, &rset)){
+            bzero(buf, sizeof(buf));
+            read(STDIN_FILENO,buf, sizeof(buf));
+            printf("User input %s\n", buf);
+        }
+        /*
+        if(strcmp(buf, "n\n")==0){
+            new(&ring);
+        }else if(strcmp(buf, "e\n")==0 || strcmp(buf, "s\n")==0 || strcmp(buf, "l\n")==0 || strcmp(buf, "ex\n")==0){
+            printf("e,s,l pressed\n");
+            if(strcmp(buf, "s\n")==0){ //show
+                show(&ring);
+            } 
+        }else if(strcmp(buf, "\n")==0){
+            continue;
+        }else
+            {
+            //separar string 
+            split_string(buf); //isto vai ser recebido por sockets de clientes 
+            // pentry: 
+            // verificar se existe o nó "pred", e se não tiver 
+            //
+
+        }*/
+        
+      
+
+
+        
+        
+    }/*while*/
+}/*main*/
