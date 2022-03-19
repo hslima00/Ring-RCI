@@ -1,9 +1,11 @@
 # RCI-aula1
 
+MAKEFILE USAGE: 
 
-gcc client.c -o client 
+make -> compila o programa que é suposto ser o final
 
-./client
+make clientt -> cria um executavel exemplo de client TCP 
 
+make clientu -> cria um executavel exemplo de client UDP
 
-https://github.com/CristianWeiland/ring-network/blob/master/connection.c
+make cleanall -> limpa todos os ficheiros desnecessários
