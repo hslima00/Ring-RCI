@@ -7,7 +7,7 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
-#define PORT "58001"
+#define PORT "8989"
 
 void main(){
     // VAR DECLARATION

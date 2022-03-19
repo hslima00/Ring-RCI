@@ -7,7 +7,7 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
-#define PORT "58001"
+#define PORT "8989"
 
 void main(){
     int fd, errcode; 
@@ -24,7 +24,7 @@ void main(){
     hints.ai_family=AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
 
-    errcode = getaddrinfo("guadiana", PORT, &hints, &res);
+    errcode = getaddrinfo("127.0.0.1", PORT, &hints, &res);
 
     if(errcode != 0) exit(1);
 

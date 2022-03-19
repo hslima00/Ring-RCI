@@ -35,7 +35,7 @@ int main(int argc , char **argv){
 
         ready_sockets = current_sockets; //because select is destructive
 
-        if(select(FD_SETSIZE, &ready_sockets/*vamos passar isto para dizer ao select
+        if(select(5, &ready_sockets/*vamos passar isto para dizer ao select
         que file descriptors é que ele tem que monitorizar, e por isto é que copiámos antes*/, NULL, NULL, NULL)<0){
             perror("select error");
             exit(EXIT_FAILURE);
@@ -101,49 +101,22 @@ int check(int exp, const char *msg){
 }
 
 void* handle_connection(int client_socket){
-    char buffer[BUFSIZE]; 
-    size_t bytes_read; 
+    char message[BUFSIZE]; 
+    size_t message_bytes;  // size_t: unsigned integer
     int msgsize=0; 
     char actualpath[PATH_MAX+1]; 
 
     //read the client's message -- the name of the file to read 
-    while((bytes_read=read(client_socket, buffer+msgsize, sizeof(buffer)-msgsize-1))){
-        msgsize += bytes_read; 
-        if (msgsize > BUFSIZE-1 || buffer[msgsize-1] == '\n') break; 
+    
+    message_bytes=read(client_socket, message, sizeof(message)-1));
+   
+    message[strlen(message)-1] = 0; //null the terminate message and remove the \n
 
-    }
-
-    check(bytes_read, "recv error");
-    buffer[msgsize-1] = 0; //null the terminate message and remove the \n
-
-    printf("REQUEST: %s\n", buffer);
-    fflush(stdout); 
-
-    //validity check
-    if(realpath(buffer, actualpath)==NULL){
-        printf("ERROR(bad path): %s\n", buffer);
-        close(client_socket);
-        return NULL; 
-    }
-
-    FILE *fp = fopen(actualpath, "r"); 
-    if(fp == NULL){
-        printf("ERROR(open): %s\n", buffer );
-        close(client_socket); 
-        return NULL; 
-    }
-
-    //read file contents and send them to client 
-    //note this is a fine example program, but rather insecure
-    //a real program would probably limit the client to a certain files 
-    while((bytes_read=fread(buffer,1,BUFSIZE, fp))>0){
-        //printf("sending %zu bytes\n", bytes_read);
-        write(client_socket, buffer, bytes_read);
-    }
-
+    printf("REQUEST: %s\n", message);
+    write(client_socket, message, message_bytes);
     close(client_socket);
-    fclose(fp); 
-    printf("closing connection \n");
+
+   
     return NULL; 
 
 }
