@@ -321,6 +321,17 @@ int main(int argc, char *argv[]){
             bzero(buf, sizeof(buf));
             read(STDIN_FILENO,buf, sizeof(buf));
             printf("User input %s\n", buf);
+            /*HANDLE MESSAGES FROM USER INPUT*/
+            if(strcmp(buf, "n\n")==0){
+                new(&ring);
+            }else if(strcmp(buf, "e\n")==0 || strcmp(buf, "s\n")==0 || strcmp(buf, "l\n")==0 || strcmp(buf, "ex\n")==0){
+                printf("e,s,l pressed\n");
+            if(strcmp(buf, "s\n")==0){ //show
+                show(&ring);
+            } 
+            }else if(strcmp(buf, "\n")==0){
+                continue;
+            }
         }
         /*
         if(strcmp(buf, "n\n")==0){
