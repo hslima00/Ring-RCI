@@ -324,34 +324,23 @@ int main(int argc, char *argv[]){
             /*HANDLE MESSAGES FROM USER INPUT*/
             if(strcmp(buf, "n\n")==0){
                 new(&ring);
-            }else if(strcmp(buf, "e\n")==0 || strcmp(buf, "s\n")==0 || strcmp(buf, "l\n")==0 || strcmp(buf, "ex\n")==0){
+            }else if(strcmp(buf, "e\n")==0  || strcmp(buf, "l\n")==0 || strcmp(buf, "ex\n")==0){
                 printf("e,s,l pressed\n");
-            if(strcmp(buf, "s\n")==0){ //show
+            }else if(strcmp(buf, "s\n")==0){ //show
                 show(&ring);
-            } 
+             
             }else if(strcmp(buf, "\n")==0){
                 continue;
             }
         }
-        /*
-        if(strcmp(buf, "n\n")==0){
-            new(&ring);
-        }else if(strcmp(buf, "e\n")==0 || strcmp(buf, "s\n")==0 || strcmp(buf, "l\n")==0 || strcmp(buf, "ex\n")==0){
-            printf("e,s,l pressed\n");
-            if(strcmp(buf, "s\n")==0){ //show
-                show(&ring);
-            } 
-        }else if(strcmp(buf, "\n")==0){
-            continue;
-        }else
-            {
+      
             //separar string 
-            split_string(buf); //isto vai ser recebido por sockets de clientes 
+            //split_string(buf); //isto vai ser recebido por sockets de clientes 
             // pentry: 
             // verificar se existe o nó "pred", e se não tiver 
-            //
+            
 
-        }*/
+        
         
       
 
