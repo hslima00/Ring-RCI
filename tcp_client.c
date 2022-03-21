@@ -34,10 +34,16 @@ int main()
 	}
 
 	memset(buffer, 0, sizeof(buffer));
-	strcpy(buffer, "Hello Server");
-	write(sockfd, buffer, sizeof(buffer));
-	printf("Message from server: ");
-	read(sockfd, buffer, sizeof(buffer));
-	puts(buffer);
-	close(sockfd);
+	while (1)
+	{
+		scanf("%s", buffer);
+		//strcpy(buffer, "Hello Server");
+		write(sockfd, buffer, sizeof(buffer));
+		printf("Message from server: ");
+		read(sockfd, buffer, sizeof(buffer));
+		puts(buffer);
+	}
+	
+	
+	//close(sockfd);
 }

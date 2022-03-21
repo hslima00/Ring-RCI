@@ -10,6 +10,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <errno.h>
+#include <stdbool.h>
 #define MAX_CHAR 20
 
 #define SERVERPORT 8989
