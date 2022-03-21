@@ -311,7 +311,7 @@ int main(int argc, char *argv[]){
                     close(connfd);
                     exit(0);
                     FD_SET(connfd, &rset);
-                }else printf("não entrei no fork\n");
+                }else printf("Im not inside a ring yet.\n");
                 
                 //close(connfd);
                 
