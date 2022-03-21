@@ -311,7 +311,7 @@ int main(int argc, char *argv[]){
                     close(connfd);
                     exit(0);
                     FD_SET(connfd, &rset);
-                }else printf("Im not inside a ring yet.\n");
+                }else printf("Can't receive data from TCP. I'm not inside a ring yet.\n");
                 
                 //close(connfd);
                 
