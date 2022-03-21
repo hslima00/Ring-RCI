@@ -26,11 +26,15 @@ int new(ring_s *ring, int tcp_c_fd, struct sockaddr_in mynodeaddr_tcp_s){ //cria
         ring->suc.PORT=ring->me.PORT;
         ring->suc.IP=ring->me.IP;
 
-        ring_created = true;
+        
 
     }
     
     return 1;
+
+}
+
+int pentry(mensagem){
 
 }
 
@@ -283,39 +287,51 @@ int main(int argc, char *argv[]){
 
         /*if tcp socket is readable then handle it by accepting the connection*/
         if (FD_ISSET(listenfd, &rset_cpy)) {
-            len = sizeof(clinodeaddr);
+           
+                len = sizeof(clinodeaddr);
 
             
-            connfd = accept(listenfd, (struct sockaddr*)&clinodeaddr, &len);
+                connfd = accept(listenfd, (struct sockaddr*)&clinodeaddr, &len);
+                printf("listen: %d\nconn:%d\n", listenfd, connfd);
+                //close(listenfd);
+                //listen(listenfd, 10);
             
-            printf("listen: %d\nconn:%d\n", listenfd, connfd);
-            if ((childpid = fork()) == 0) {
-                close(listenfd);
-                bzero(buf, sizeof(buf));
-               
-                read(connfd, buf, sizeof(buf));
-                //printf("Message From TCP client (pred): %s\n", buf);
+            /*o nó q ta a entrar mete o seu pred */
                 
-                write(connfd, (const char*)message, sizeof(buf));
-                close(connfd);
-                exit(0);
+                
+            if ((childpid = fork()) == 0) {
+                    if(ring_created){
+                    close(listenfd);
+                    bzero(buf, sizeof(buf));
+                
+                    read(connfd, buf, sizeof(buf));
+                    printf("Message From TCP client (pred): %s\n", buf);
+                    
+                    write(connfd, (const char*)message, sizeof(buf));
+                    close(connfd);
+                    exit(0);
+                    FD_SET(connfd, &rset);
+                }else printf("não entrei no fork\n");
+                
+                //close(connfd);
+                
+                /*NO PENTRY QUERO FECHAR AS SOCKETS E ADMITIR OUTRAS*/
+                /*VERIFICAR SE "EU" TENHO ANEL CRIADO*/
+                /*TESTAR SE EXISTE ALGUM NÓ NA CHAVE*/
+                /*SE NAO EXISTIR ENTAO */
             }
-            FD_SET(connfd, &rset);
-            //close(connfd);
-             
-            /*NO PENTRY QUERO FECHAR AS SOCKETS E ADMITIR OUTRAS*/
-            /*VERIFICAR SE "EU" TENHO ANEL CRIADO*/
-            /*TESTAR SE EXISTE ALGUM NÓ NA CHAVE*/
-            /*SE NAO EXISTIR ENTAO */
+                    
+                    
+            
         }
 
-        if(FD_ISSET(connfd, &rset)){
+        /*if(FD_ISSET(connfd, &rset)){
             printf("a responder ao connfd: %d\n", connfd);
             read(connfd, buf, sizeof(buf));
                 //printf("Message From TCP client (pred): %s\n", buf);
 
             write(connfd, (const char*)message, sizeof(buf));
-        }
+        }*/
 
         // if udp socket is readable receive the message.
 		if (FD_ISSET(udpfd, &rset_cpy)) {
@@ -338,6 +354,7 @@ int main(int argc, char *argv[]){
             printf("User input %s\n", buf);
             /*HANDLE MESSAGES FROM USER INPUT*/
             if(strcmp(buf, "n\n")==0){
+                ring_created = true;
                 new(&ring, tcp_c_fd, mynodeaddr_tcp_s);
             }else if(strcmp(buf, "e\n")==0  || strcmp(buf, "l\n")==0 || strcmp(buf, "ex\n")==0){
                 printf("e,s,l pressed\n");

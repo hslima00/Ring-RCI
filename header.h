@@ -26,6 +26,7 @@ typedef struct{
     int ID; //
     char *IP;
     char *PORT;
+    int tcp_socket; 
     /*char IP_PRED[100];
     char IP_SUC[100]; */
 }node; 
