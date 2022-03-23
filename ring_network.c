@@ -162,10 +162,44 @@ int accept_new_connection(int server_socket){
 
 }
 
-char* string_to_command(){
-    char* args;
 
-    return *args;
+
+command_s string_to_command (char *buf, command_s command)
+{
+
+  char delim[] = " ";
+  printf ("command_string= %s\n", buf);
+  char *ptr = strtok (buf, delim);
+  char *ip_copy;
+  int arg_counter = 0;
+  char *args[4];
+  char *ret;
+  while (ptr != NULL)
+    {
+      printf ("'%s'\n", ptr);
+      args[arg_counter] = (char *) malloc (strlen (ptr + 1) * sizeof (char));
+      strcpy (args[arg_counter], ptr);
+      arg_counter++;
+      ptr = strtok (NULL, delim);
+    }
+
+  for (int i = 0; i < arg_counter; i++)
+    {
+      printf ("arg[%d]=%s\n", i, args[i]);
+    }
+  memset (&command, " ", sizeof (command));
+
+  command.opt = (char *) malloc (strlen (args[0] + 1) * sizeof (char));
+  command.IP = (char *) malloc (strlen (args[2] + 1) * sizeof (char));
+  command.PORT = (char *) malloc (strlen (args[3] + 1) * sizeof (char));
+  command.key = (char *) malloc (strlen (args[1] + 1) * sizeof (char));
+
+  strcpy (command.opt, args[0]);
+  strcpy (command.IP, args[2]);
+  strcpy (command.PORT, args[3]);
+  strcpy (command.key, args[1]);
+
+  return command;
 }
 
 int main(int argc, char *argv[]){
@@ -225,7 +259,7 @@ int main(int argc, char *argv[]){
     maxfdp1= max(udpfd, listenfd) ;
     maxfdp1= max(STDIN_FILENO,maxfdp1)+1;	
     
-    
+    command_s command;
     for (;;) {
         
         FD_ZERO(&rset);
@@ -243,7 +277,7 @@ int main(int argc, char *argv[]){
             exit(0);
         }
 
-        /*if tcp socket is readable then handle it by accepting the connection*/
+        //*if tcp socket is readable then handle it by accepting the connection
         if (FD_ISSET(listenfd, &rset)) {
            
                 len = sizeof(clinodeaddr);
@@ -254,20 +288,11 @@ int main(int argc, char *argv[]){
                 close(connfd);
                 //TODO: Handle the data read
                 //TODO: criar função que separa o recebido
-                split_string(&buf); // ! fiz uma função que retorna o que é suposto. ver no "split.c"
+                command = string_to_command (buf, command); // ! fiz uma função que retorna o que é suposto. ver no "split.c"
+                                                            // ! pfv verificar esta função. não dá para todos os comandos.  
+                printf("O comando recebido foi repartido em:\nOPT:%s\nKey:%s\nIP:%s\nPORT:%s\n", command.opt, command.key, command.IP, command.PORT);
             }
                     
-                    
-            
-        
-
-        /*if(FD_ISSET(connfd, &rset)){
-            printf("a responder ao connfd: %d\n", connfd);
-            read(connfd, buf, sizeof(buf));
-                //printf("Message From TCP client (pred): %s\n", buf);
-
-            write(connfd, (const char*)message, sizeof(buf));
-        }*/
 
         // if udp socket is readable receive the message.
 		if (FD_ISSET(udpfd, &rset)) {

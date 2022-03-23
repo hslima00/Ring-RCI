@@ -30,6 +30,15 @@ typedef struct{
     int tcp_c; 
 }sock_s;
 
+typedef struct
+{
+  char *key;
+  char *IP;
+  char *PORT;
+  char *opt;
+} command_s;
+
+
 typedef struct{
     int ID; //
     char *IP;
