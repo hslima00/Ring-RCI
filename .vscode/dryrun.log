@@ -1,0 +1,7 @@
+make ring --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/RCI/RCI-aula1'
+gcc -Wall -pedantic -Wextra   -c -o ring_network.o ring_network.c
+gcc -Wall -pedantic -Wextra   -c -o new.o new.c
+gcc -g  -Wall -pedantic -Wextra -o ring  ring_network.o new.o 
+make: Leaving directory '/home/RCI/RCI-aula1'
+ 

@@ -1,19 +1,20 @@
-// TCP Client program
+ 
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#define PORT 5000
 #define MAXLINE 1024
-int main()
+int main(int argc, char* argv[])
 {
 	int sockfd;
 	char buffer[MAXLINE];
-	char* message = "Hello Server";
+	char str[MAXLINE]; 	
+	
 	struct sockaddr_in servaddr;
-
+	int PORT; 
+	PORT = atoi(argv[1]);
 	int n, len;
 	// Creating socket file descriptor
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -33,15 +34,16 @@ int main()
 		printf("\n Error : Connect Failed \n");
 	}
 
-	memset(buffer, 0, sizeof(buffer));
-	strcpy(buffer, "Hello Server");
-	write(sockfd, buffer, sizeof(buffer));
-	printf("Message from server: ");
-	read(sockfd, buffer, sizeof(buffer));
-	puts(buffer);
+	for(;;){
+		memset(buffer, 0, sizeof(buffer));
+		bzero(str, sizeof(str));
+		fgets(str,100, stdin);
+		str[strlen(str)-1] = '\0';
+		printf("lido do scanf %s\n", str);
+		
+		strcpy(buffer, str);
+		write(sockfd, buffer, sizeof(buffer));
+	}
+		
 	
-	
-	
-	close(sockfd);
-	exit(0);
 }

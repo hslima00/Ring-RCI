@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_DEPRECATE
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -23,10 +24,19 @@ typedef struct sockaddr SA;
 //#define PORT "58001"
 
 typedef struct{
+    int udp_s;
+    int tcp_s;
+    int udp_c;
+    int tcp_c; 
+}sock_s;
+
+typedef struct{
     int ID; //
     char *IP;
     char *PORT;
-    int tcp_socket; 
+    int tcp_socket;
+    int udp_socket;
+    sock_s socket; 
     /*char IP_PRED[100];
     char IP_SUC[100]; */
 }node; 
@@ -39,3 +49,5 @@ typedef struct{
     node me; 
     node rope; 
 }ring_s;
+
+//int new(ring_s, int, struct sockaddr_in);

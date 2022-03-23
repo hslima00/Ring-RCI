@@ -1,42 +1,5 @@
 #include "header.h"
 
-bool ring_created = false; 
-
-int new(ring_s *ring, int tcp_c_fd, struct sockaddr_in mynodeaddr_tcp_s){ //cria o anel com um nó com s=self 
-    char buf[MAX_CHAR];
-    bzero(buf, sizeof(buf));
-    if(ring->me.ID==ring->pred.ID){
-        printf("Ring already created\n");
-        return 0;
-    }else{
-        
-        connect(tcp_c_fd, (struct sockaddr*)&mynodeaddr_tcp_s,
-							sizeof(mynodeaddr_tcp_s));
-        strcpy(buf, "connecting to self\n");
-        write(tcp_c_fd, buf, sizeof(buf));
-        printf("Executa a função new()\n");
-        ring->pred.ID=ring->me.ID;
-        ring->pred.PORT=ring->me.PORT;
-        ring->pred.IP=ring->me.IP;
-        printf("ID %d\n", ring->me.ID);
-        printf("IP %s\n", ring->me.IP);
-        printf("PORT %s\n", ring->me.PORT);
-
-        ring->suc.ID=ring->me.ID;
-        ring->suc.PORT=ring->me.PORT;
-        ring->suc.IP=ring->me.IP;
-
-        
-
-    }
-    
-    return 1;
-
-}
-
-int pentry(mensagem){
-
-}
 
 char* verify_ip(char* ip_string){
 
@@ -60,7 +23,7 @@ char* verify_ip(char* ip_string){
 }
 
 int split_string(char* command_string){
-    	char delim[] = " ";
+    char delim[] = " ";
     printf("command_string= %s", command_string);
     char *ptr = strtok(command_string, delim);
     char *ip_copy;
@@ -182,6 +145,13 @@ void* handle_connection(int client_socket){
 
 }
 
+int max(int x, int y)
+{
+    if (x > y)
+        return x;
+    else
+        return y;
+}
 
 int accept_new_connection(int server_socket){
     int addr_size = sizeof(SA_IN);
@@ -192,31 +162,21 @@ int accept_new_connection(int server_socket){
 
 }
 
-int check(int exp, const char *msg){
-    if (exp == SOCKETERROR){
-        perror(msg);
-        exit(1);
-    }
-    return(exp); 
-}
+char* string_to_command(){
+    char* args;
 
-int max(int x, int y)
-{
-	if (x > y)
-		return x;
-	else
-		return y;
+    return *args;
 }
 
 int main(int argc, char *argv[]){
 
-                      //
-                                   
+    bool ring_created = false;                           
     char buf[MAX_CHAR];                     // buffer que vai guardar os caracteres
     int sret /*return do select*/;     //                              //
     
     ring_s ring;
-    struct sockaddr_in clinodeaddr, mynodeaddr_tcp_s, mynodeaddr_tcp_c;
+    struct sockaddr_in clinodeaddr, mynodeaddr_tcp_s, mynodeaddr_tcp_c,
+                                    mynodeaddr_udp_s, mynodeaddr_udp_c;
     socklen_t len;
     ssize_t n; 
     char* message = "Hello Client";
@@ -228,102 +188,78 @@ int main(int argc, char *argv[]){
 
     int maxfdp1; /*max file descriptors inside table*/
     fd_set rset, rset_cpy;
-
-    void sig_chld(int);
-
+    pid_t childpid;
+    
     initialize_ring_memory(&ring, argc-1, argv+1); //sets pred and suc memory to NULL (para n ter lixo) and mallocs memory for self node.
 
-    if(valid_arguments(argc - 1, argv + 1, &ring))exit(-1); //se a porta ou ip não estiverem válidos então o programa fecha
+    if(valid_arguments(argc - 1, argv + 1, &ring)){
+        //se a porta ou ip não estiverem válidos então o programa fecha
+        printf("Usage: ./ring i i.IP i.PORT\n");
+        exit(-1);
+    } 
 
-    /*create TCP listening socket and UDP SERVERS */
-                    /*TCP SERVER*/
-    listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    // *create TCP listening socket and UDP SERVERS
+
+                    // !TCP SERVER
+    if((listenfd = socket(AF_INET, SOCK_STREAM, 0))==-1){
+        printf("Error: Listenfd\n");
+        exit(0);
+    }
 	bzero(&mynodeaddr_tcp_s, sizeof(mynodeaddr_tcp_s));
 	mynodeaddr_tcp_s.sin_family = AF_INET;
 	mynodeaddr_tcp_s.sin_addr.s_addr = htonl(INADDR_ANY);
 	mynodeaddr_tcp_s.sin_port = htons(atoi(ring.me.PORT));
-                    /*UDP SERVER*/
+    if((bind(listenfd, (struct sockaddr*)&mynodeaddr_tcp_s, sizeof(mynodeaddr_tcp_s)))==-1){
+        printf("Error: Bind\n");
+        exit(0);
+    }
+    listen(listenfd, 10);
+
+                    // !UDP SERVER
     udpfd = socket(AF_INET, SOCK_DGRAM, 0);
-    pid_t childpid;
-    /*bind das sockets UDP e TCP ao "meu" ip e porta*/
-    bind(listenfd, (struct sockaddr*)&mynodeaddr_tcp_s, sizeof(mynodeaddr_tcp_s));
-	listen(listenfd, 10);
-    bind(udpfd, (struct sockaddr*)&mynodeaddr_tcp_s, sizeof(mynodeaddr_tcp_s));
+    mynodeaddr_udp_s.sin_family = AF_INET;
+	mynodeaddr_udp_s.sin_addr.s_addr = htonl(INADDR_ANY);
+	mynodeaddr_udp_s.sin_port = htons(atoi(ring.me.PORT));
+    bind(udpfd, (struct sockaddr*)&mynodeaddr_udp_s, sizeof(mynodeaddr_udp_s));
 
-    /*CREATE CLIENT UDP AND TCP CLIENTS*/
-    mynodeaddr_tcp_c.sin_family=AF_INET;
-	mynodeaddr_tcp_c.sin_port = htons(atoi(ring.me.PORT));
-	mynodeaddr_tcp_c.sin_addr.s_addr = inet_addr(ring.me.IP);
-
-    tcp_c_fd = socket(AF_INET, SOCK_STREAM, 0);
-
-
-
-
-    /*clear file descriptor table/set */
-    FD_ZERO(&rset);
+    maxfdp1= max(udpfd, listenfd) ;
+    maxfdp1= max(STDIN_FILENO,maxfdp1)+1;	
     
     
-    
-    // get maxfd
-	maxfdp1 = max(listenfd, udpfd) + 1;
-    
-    while(1){
-
+    for (;;) {
+        
+        FD_ZERO(&rset);
         /*insert sockets in the fd set*/
         FD_SET(listenfd, &rset);
 		FD_SET(udpfd, &rset);
         FD_SET(STDIN_FILENO, &rset);
-        FD_SET(tcp_c_fd, &rset);
         
-        rset_cpy = rset;
+        
 
-        sret = select(FD_SETSIZE, &rset_cpy, NULL, NULL, NULL);
+        sret = select(maxfdp1, &rset, NULL, NULL, NULL);
         
-        if(sret==-1){
+        if(sret<=0){
             printf("erro no select\n");
             exit(0);
         }
 
         /*if tcp socket is readable then handle it by accepting the connection*/
-        if (FD_ISSET(listenfd, &rset_cpy)) {
+        if (FD_ISSET(listenfd, &rset)) {
            
                 len = sizeof(clinodeaddr);
-
-            
                 connfd = accept(listenfd, (struct sockaddr*)&clinodeaddr, &len);
+                n=read(connfd,buf, sizeof(buf));
                 printf("listen: %d\nconn:%d\n", listenfd, connfd);
-                //close(listenfd);
-                //listen(listenfd, 10);
-            
-            /*o nó q ta a entrar mete o seu pred */
-                
-                
-            if ((childpid = fork()) == 0) {
-                    if(ring_created){
-                    close(listenfd);
-                    bzero(buf, sizeof(buf));
-                
-                    read(connfd, buf, sizeof(buf));
-                    printf("Message From TCP client (pred): %s\n", buf);
-                    
-                    write(connfd, (const char*)message, sizeof(buf));
-                    close(connfd);
-                    exit(0);
-                    FD_SET(connfd, &rset);
-                }else printf("Can't receive data from TCP. I'm not inside a ring yet.\n");
-                
-                //close(connfd);
-                
-                /*NO PENTRY QUERO FECHAR AS SOCKETS E ADMITIR OUTRAS*/
-                /*VERIFICAR SE "EU" TENHO ANEL CRIADO*/
-                /*TESTAR SE EXISTE ALGUM NÓ NA CHAVE*/
-                /*SE NAO EXISTIR ENTAO */
+                printf("%s", buf);
+                close(connfd);
+                //TODO: Handle the data read
+                //TODO: criar função que separa o recebido
+                split_string(&buf);
             }
                     
                     
             
-        }
+        
 
         /*if(FD_ISSET(connfd, &rset)){
             printf("a responder ao connfd: %d\n", connfd);
@@ -334,7 +270,7 @@ int main(int argc, char *argv[]){
         }*/
 
         // if udp socket is readable receive the message.
-		if (FD_ISSET(udpfd, &rset_cpy)) {
+		if (FD_ISSET(udpfd, &rset)) {
 			len = sizeof(clinodeaddr);
 			bzero(buf, sizeof(buf));
 			n = recvfrom(udpfd, buf, sizeof(buf), 0,
@@ -348,7 +284,7 @@ int main(int argc, char *argv[]){
 				(struct sockaddr*)&clinodeaddr, sizeof(clinodeaddr));
 		}
         
-        if(FD_ISSET(STDIN_FILENO, &rset_cpy)){
+        if(FD_ISSET(STDIN_FILENO, &rset)){
             bzero(buf, sizeof(buf));
             read(STDIN_FILENO,buf, sizeof(buf));
             printf("User input %s\n", buf);

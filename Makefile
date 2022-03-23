@@ -22,8 +22,8 @@ SERVER_NAME = ring
 
 PROG_NAME = $(SERVER_NAME)  
 # Nomes para as fontes e objetos 
-SERVER_OBJS = ring_network.o 
-SERVER_SOURCES =ring_network.c header.h
+SERVER_OBJS = ring_network.o new.o
+SERVER_SOURCES =ring_network.c new.c header.h
 
 
 
@@ -60,7 +60,7 @@ clean:
 	rm -rf $(C_TRASH)  
 
 cleanExe:
-	rm -rf $(PROG_NAME) clientt clientu server client
+	rm -rf $(PROG_NAME) clientt clientu server clientm
 
 clientt: 
 	gcc tcp_client.c -o clientt
