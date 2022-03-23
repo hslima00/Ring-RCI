@@ -254,7 +254,7 @@ int main(int argc, char *argv[]){
                 close(connfd);
                 //TODO: Handle the data read
                 //TODO: criar função que separa o recebido
-                split_string(&buf);
+                split_string(&buf); // ! fiz uma função que retorna o que é suposto. ver no "split.c"
             }
                     
                     
