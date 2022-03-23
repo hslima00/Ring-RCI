@@ -216,7 +216,7 @@ int main(int argc, char *argv[]){
     char* message = "Hello Client";
 
     int listenfd;/*socket listen do tcp server*/
-    int connfd, connfd_cpy; /*socket tcp returned from connect*/
+    int connfd=-1, connfd_cpy; /*socket tcp returned from connect*/
     int udpfd; /*socket udp */
     int tcp_c_fd;
 
@@ -256,9 +256,22 @@ int main(int argc, char *argv[]){
 	mynodeaddr_udp_s.sin_port = htons(atoi(ring.me.PORT));
     bind(udpfd, (struct sockaddr*)&mynodeaddr_udp_s, sizeof(mynodeaddr_udp_s));
 
+                    //! TCP Client
+    if ((tcp_c_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		printf("socket creation failed");
+		exit(0);
+	}
+
+	memset(&mynodeaddr_tcp_c, 0, sizeof(mynodeaddr_tcp_c));
+
+	// Filling server information
+	mynodeaddr_tcp_c.sin_family = AF_INET;
+	mynodeaddr_tcp_c.sin_port = htons(atoi(ring.me.PORT));
+	mynodeaddr_tcp_c.sin_addr.s_addr = inet_addr(ring.me.IP);
+
     maxfdp1= max(udpfd, listenfd) ;
     maxfdp1= max(STDIN_FILENO,maxfdp1)+1;	
-    
+    connfd = -1; 
     command_s command;
     for (;;) {
         
@@ -267,10 +280,12 @@ int main(int argc, char *argv[]){
         FD_SET(listenfd, &rset);
 		FD_SET(udpfd, &rset);
         FD_SET(STDIN_FILENO, &rset);
+        //FD_SET(connfd, &rset);
         
+        rset_cpy = rset; 
         
 
-        sret = select(maxfdp1, &rset, NULL, NULL, NULL);
+        sret = select(maxfdp1, &rset_cpy, NULL, NULL, NULL);
         
         if(sret<=0){
             printf("erro no select\n");
@@ -278,24 +293,28 @@ int main(int argc, char *argv[]){
         }
 
         //*if tcp socket is readable then handle it by accepting the connection
-        if (FD_ISSET(listenfd, &rset)) {
+    
+        if (FD_ISSET(listenfd, &rset_cpy)) {
            
                 len = sizeof(clinodeaddr);
                 connfd = accept(listenfd, (struct sockaddr*)&clinodeaddr, &len);
-                n=read(connfd,buf, sizeof(buf));
-                printf("listen: %d\nconn:%d\n", listenfd, connfd);
-                printf("%s", buf);
-                close(connfd);
+                maxfdp1 = max(connfd, maxfdp1);
+                
+                FD_SET(connfd, &rset);
+                printf("O client conectou-se com a socketfd: %d\n", connfd);
+                
+                //close(connfd);
                 //TODO: Handle the data read
                 //TODO: criar função que separa o recebido
-                command = string_to_command (buf, command); // ! fiz uma função que retorna o que é suposto. ver no "split.c"
+                //TODO: verificar se os commandos estão bem definidos.
+                //command = string_to_command (buf, command); // ! fiz uma função que retorna o que é suposto. ver no "split.c"
                                                             // ! pfv verificar esta função. não dá para todos os comandos.  
-                printf("O comando recebido foi repartido em:\nOPT:%s\nKey:%s\nIP:%s\nPORT:%s\n", command.opt, command.key, command.IP, command.PORT);
+                //printf("O comando recebido foi repartido em:\nOPT:%s\nKey:%s\nIP:%s\nPORT:%s\n", command.opt, command.key, command.IP, command.PORT);
             }
                     
 
         // if udp socket is readable receive the message.
-		if (FD_ISSET(udpfd, &rset)) {
+		if (FD_ISSET(udpfd, &rset_cpy)) {
 			len = sizeof(clinodeaddr);
 			bzero(buf, sizeof(buf));
 			n = recvfrom(udpfd, buf, sizeof(buf), 0,
@@ -308,18 +327,30 @@ int main(int argc, char *argv[]){
 			sendto(udpfd, (const char*)message, sizeof(buf), 0,
 				(struct sockaddr*)&clinodeaddr, sizeof(clinodeaddr));
 		}
+
+        if(FD_ISSET(connfd, &rset_cpy)){
+            //read from connfd
+            
+            bzero(buf, sizeof(buf));
+            n=read(connfd,buf, sizeof(buf));
+            printf("Recebi mensagem de um cliente que já estava conectado: %d\n", connfd);
+            n=write(connfd, buf, n);
+            
+        }
         
-        if(FD_ISSET(STDIN_FILENO, &rset)){
+        if(FD_ISSET(STDIN_FILENO, &rset_cpy)){
+            int i=0;
             bzero(buf, sizeof(buf));
             read(STDIN_FILENO,buf, sizeof(buf));
+            buf[strlen(buf)-1]='\0';
             printf("User input %s\n", buf);
             /*HANDLE MESSAGES FROM USER INPUT*/
-            if(strcmp(buf, "n\n")==0){
+            if(strcmp(buf, "n")==0){
                 ring_created = true;
-                new(&ring, tcp_c_fd, mynodeaddr_tcp_s);
-            }else if(strcmp(buf, "e\n")==0  || strcmp(buf, "l\n")==0 || strcmp(buf, "ex\n")==0){
+                new(&ring);
+            }else if(strcmp(buf, "e")==0  || strcmp(buf, "l")==0 || strcmp(buf, "ex")==0){
                 printf("e,s,l pressed\n");
-            }else if(strcmp(buf, "s\n")==0){ //show
+            }else if(strcmp(buf, "s")==0){ //show
                 show(&ring);
              
             }else if(strcmp(buf, "\n")==0){

@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Wed Mar 23 03:04:34 2022
+# Make data base, printed on Wed Mar 23 20:53:41 2022
 
 # Variables
 
@@ -61,7 +61,7 @@ C_TRASH = *.o *.so
 # environment
 VSCODE_LOG_STACK = false
 # environment
-VSCODE_IPC_HOOK_CLI = /mnt/wslg/runtime-dir/vscode-ipc-20576a94-986d-4f6f-9f81-c8b770de0e10.sock
+VSCODE_IPC_HOOK_CLI = /mnt/wslg/runtime-dir/vscode-ipc-f815da7a-3860-4abf-8bcf-c20cbfdce8e6.sock
 # default
 .FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync check-symlink load
 # environment
@@ -181,9 +181,9 @@ WSL_DISTRO_NAME = Ubuntu-20.04
 
 # Directories
 
-# . (device 2080, inode 59526): 22 files, no impossibilities.
+# . (device 2080, inode 59526): 23 files, no impossibilities.
 
-# 22 files, no impossibilities in 1 directories.
+# 23 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -324,9 +324,9 @@ clientt:
 # strcache buffers: 1 (0) / strings = 37 / storage = 345 B / avg = 9 B
 # current buf: size = 8162 B / used = 345 B / count = 37 / avg = 9 B
 
-# strcache performance: lookups = 69 / hit rate = 46%
+# strcache performance: lookups = 70 / hit rate = 47%
 # hash-table stats:
-# Load=37/8192=0%, Rehash=0, Collisions=1/69=1%
-# Finished Make data base on Wed Mar 23 03:04:34 2022
+# Load=37/8192=0%, Rehash=0, Collisions=1/70=1%
+# Finished Make data base on Wed Mar 23 20:53:41 2022
 
  
