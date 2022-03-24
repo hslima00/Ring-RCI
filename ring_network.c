@@ -164,7 +164,7 @@ int accept_new_connection(int server_socket){
 
 
 
-command_s string_to_command (char *buf, command_s command)
+command_s string_to_command (char *buf, command_s *command)
 {
 
   char delim[] = " ";
@@ -187,19 +187,21 @@ command_s string_to_command (char *buf, command_s command)
     {
       printf ("arg[%d]=%s\n", i, args[i]);
     }
+  
+
+    /* //! DELETE 
   memset (&command, " ", sizeof (command));
+  command.opt   = (char *) malloc (strlen (args[0] + 1) * sizeof (char));
+  command.IP    = (char *) malloc (strlen (args[2] + 1) * sizeof (char));
+  command.PORT  = (char *) malloc (strlen (args[3] + 1) * sizeof (char));
+  command.key   = (char *) malloc (strlen (args[1] + 1) * sizeof (char));*/
 
-  command.opt = (char *) malloc (strlen (args[0] + 1) * sizeof (char));
-  command.IP = (char *) malloc (strlen (args[2] + 1) * sizeof (char));
-  command.PORT = (char *) malloc (strlen (args[3] + 1) * sizeof (char));
-  command.key = (char *) malloc (strlen (args[1] + 1) * sizeof (char));
+  strcpy (command->opt, args[0]);
+  strcpy (command->IP, args[2]);
+  strcpy (command->PORT, args[3]);
+  strcpy (command->key, args[1]);
 
-  strcpy (command.opt, args[0]);
-  strcpy (command.IP, args[2]);
-  strcpy (command.PORT, args[3]);
-  strcpy (command.key, args[1]);
-
-  return command;
+  return *command;
 }
 
 int main(int argc, char *argv[]){
@@ -273,19 +275,34 @@ int main(int argc, char *argv[]){
     maxfdp1= max(STDIN_FILENO,maxfdp1)+1;	
     connfd = -1; 
     command_s command;
+    
+
+    char *fds; 
+    FD_ZERO(&rset);
     for (;;) {
         
-        FD_ZERO(&rset);
-        /*insert sockets in the fd set*/
         FD_SET(listenfd, &rset);
-		FD_SET(udpfd, &rset);
+        FD_SET(udpfd, &rset);
         FD_SET(STDIN_FILENO, &rset);
+        rset_cpy = rset; 
+        fds=(char*)&rset;
+
+        printf("Mascara rset:\n");
+
+        
+        printf("rset: %d\n",  (unsigned char)fds[0]);
+        //printf("a %d\n",  (unsigned char)fds[1]);
+        
+        
+        /*insert sockets in the fd set*/
+        sret = select(maxfdp1, &rset_cpy, NULL, NULL, NULL);
+        fds =(char*)&rset_cpy;
+        printf("rset_cpy %d\n",  (unsigned char)fds[0]);
         //FD_SET(connfd, &rset);
         
-        rset_cpy = rset; 
         
 
-        sret = select(maxfdp1, &rset_cpy, NULL, NULL, NULL);
+        
         
         if(sret<=0){
             printf("erro no select\n");
@@ -298,17 +315,19 @@ int main(int argc, char *argv[]){
            
                 len = sizeof(clinodeaddr);
                 connfd = accept(listenfd, (struct sockaddr*)&clinodeaddr, &len);
-                maxfdp1 = max(connfd, maxfdp1);
-                
+                printf("maxfd %d\n", maxfdp1);
+                maxfdp1 = max(connfd, maxfdp1)+1;
+                printf("maxfd %d\n", maxfdp1);
+                //n=write(connfd, "hello", n);
                 FD_SET(connfd, &rset);
                 printf("O client conectou-se com a socketfd: %d\n", connfd);
-                
+                 // ! fiz uma função que retorna o que é suposto. ver no "split.c"
+                                                            // ! pfv verificar esta função. não dá para todos os comandos.  
                 //close(connfd);
                 //TODO: Handle the data read
                 //TODO: criar função que separa o recebido
                 //TODO: verificar se os commandos estão bem definidos.
-                //command = string_to_command (buf, command); // ! fiz uma função que retorna o que é suposto. ver no "split.c"
-                                                            // ! pfv verificar esta função. não dá para todos os comandos.  
+                
                 //printf("O comando recebido foi repartido em:\nOPT:%s\nKey:%s\nIP:%s\nPORT:%s\n", command.opt, command.key, command.IP, command.PORT);
             }
                     
@@ -330,11 +349,14 @@ int main(int argc, char *argv[]){
 
         if(FD_ISSET(connfd, &rset_cpy)){
             //read from connfd
-            
+            printf("here\n");
             bzero(buf, sizeof(buf));
             n=read(connfd,buf, sizeof(buf));
-            printf("Recebi mensagem de um cliente que já estava conectado: %d\n", connfd);
-            n=write(connfd, buf, n);
+            //string_to_command (buf, &command);
+            //buf[strlen(buf)-1]='\0';
+            printf("Recebi mensagem de um cliente que já estava conectado: %d\nMensagem:%s\n", connfd, buf);
+            
+            n=write(connfd, "ACK\n", n);
             
         }
         
@@ -356,7 +378,7 @@ int main(int argc, char *argv[]){
             }else if(strcmp(buf, "\n")==0){
                 continue;
             }
-        }
+        }else continue;
       
             //separar string 
             //split_string(buf); //isto vai ser recebido por sockets de clientes 
