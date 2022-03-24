@@ -275,7 +275,10 @@ int main(int argc, char *argv[]){
     maxfdp1= max(STDIN_FILENO,maxfdp1)+1;	
     connfd = -1; 
     command_s command;
-    
+    command.opt   = (char *) malloc (strlen (argv[0] + 1) * sizeof (char));
+    command.IP    = (char *) malloc (strlen (argv[2] + 1) * sizeof (char));
+    command.PORT  = (char *) malloc (strlen (argv[3] + 1) * sizeof (char));
+    command.key   = (char *) malloc (strlen (argv[1] + 1) * sizeof (char));
 
     char *fds; 
     FD_ZERO(&rset);
@@ -286,8 +289,6 @@ int main(int argc, char *argv[]){
         FD_SET(STDIN_FILENO, &rset);
         rset_cpy = rset; 
         fds=(char*)&rset;
-
-        printf("Mascara rset:\n");
 
         
         printf("rset: %d\n",  (unsigned char)fds[0]);
@@ -315,9 +316,9 @@ int main(int argc, char *argv[]){
            
                 len = sizeof(clinodeaddr);
                 connfd = accept(listenfd, (struct sockaddr*)&clinodeaddr, &len);
-                printf("maxfd %d\n", maxfdp1);
+                
                 maxfdp1 = max(connfd, maxfdp1)+1;
-                printf("maxfd %d\n", maxfdp1);
+                
                 //n=write(connfd, "hello", n);
                 FD_SET(connfd, &rset);
                 printf("O client conectou-se com a socketfd: %d\n", connfd);
@@ -349,10 +350,11 @@ int main(int argc, char *argv[]){
 
         if(FD_ISSET(connfd, &rset_cpy)){
             //read from connfd
-            printf("here\n");
+
             bzero(buf, sizeof(buf));
             n=read(connfd,buf, sizeof(buf));
-            //string_to_command (buf, &command);
+            string_to_command (buf, &command);
+            printf("\nTeste ao command: %s\n\n", command.IP);
             //buf[strlen(buf)-1]='\0';
             printf("Recebi mensagem de um cliente que já estava conectado: %d\nMensagem:%s\n", connfd, buf);
             
