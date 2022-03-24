@@ -22,41 +22,6 @@ char* verify_ip(char* ip_string){
     return ip_string_copy;
 }
 
-int split_string(char* command_string){
-    char delim[] = " ";
-    printf("command_string= %s", command_string);
-    char *ptr = strtok(command_string, delim);
-    char *ip_copy;
-    int arg_counter = 0;
-    char *args[4];
-    char *ret;
-    while(ptr != NULL)
-	{
-		printf("'%s'\n", ptr);
-        args[arg_counter] = (char*) malloc(strlen(ptr+1)*sizeof(char));
-        strcpy(args[arg_counter],ptr);
-        arg_counter++;
-		ptr = strtok(NULL, delim);
-	}
-    for(int i = 0; i<arg_counter; i++){
-        printf("arg[%d]=%s\n",i, args[i] );
-    }
-     
-    ip_copy = (char*) malloc(strlen(args[2]+1)*sizeof(char));
-    strcpy(ip_copy, args[2]);
-    ret = verify_ip(ip_copy);
-    if(strcmp(ret,"error")==0){
-        printf("The IP entered in the command was not valid.\n");
-        return 1; 
-    }
-
-    for(int i = 0; i<arg_counter; i++){
-        printf("arg[%d]=%s\n",i, args[i] );
-    }
-    //printf("Valid IP!\n");
-    return 0;
-}
-
 int valid_arguments(int argc, char *argv[], ring_s *ring){
     //return 1 if failure, return 0 if valid
     
@@ -153,18 +118,25 @@ int max(int x, int y)
         return y;
 }
 
-int accept_new_connection(int server_socket){
-    int addr_size = sizeof(SA_IN);
-    int client_socket; 
-    SA_IN client_addr; 
-    client_socket=accept(server_socket,(SA*)&client_addr,(socklen_t*)&addr_size);
-    return client_socket; 
 
+char* command_to_string(command_s *command){
+    // "SELF" "+ring.me.ID+" "+ring.me.IP+" "+ring.me.PORT+"\n"
+    char temp_str[100];
+
+    strcat(temp_str, command->opt);
+    strcat(temp_str, " ");
+    strcat(temp_str, command->key);
+    strcat(temp_str, " ");
+    strcat(temp_str, command->IP);
+    strcat(temp_str, " ");
+    strcat(temp_str, command->PORT);
+    strcat(temp_str, "\n");
+
+    
+    return temp_str;
 }
 
-
-
-command_s string_to_command (char *buf, command_s *command)
+void string_to_command (char *buf, command_s *command)
 {
 
   char delim[] = " ";
@@ -197,11 +169,9 @@ command_s string_to_command (char *buf, command_s *command)
   command.key   = (char *) malloc (strlen (args[1] + 1) * sizeof (char));*/
 
   strcpy (command->opt, args[0]);
+  strcpy (command->key, args[1]);
   strcpy (command->IP, args[2]);
   strcpy (command->PORT, args[3]);
-  strcpy (command->key, args[1]);
-
-  return *command;
 }
 
 int main(int argc, char *argv[]){
@@ -212,7 +182,7 @@ int main(int argc, char *argv[]){
     
     ring_s ring;
     struct sockaddr_in clinodeaddr, mynodeaddr_tcp_s, mynodeaddr_tcp_c,
-                                    mynodeaddr_udp_s, mynodeaddr_udp_c;
+                                    mynodeaddr_udp_s, mynodeaddr_udp_c, pred_tcp_s;
     socklen_t len;
     ssize_t n; 
     char* message = "Hello Client";
@@ -221,6 +191,7 @@ int main(int argc, char *argv[]){
     int connfd=-1, connfd_cpy; /*socket tcp returned from connect*/
     int udpfd; /*socket udp */
     int tcp_c_fd;
+    int connfd2=-1;
 
     int maxfdp1; /*max file descriptors inside table*/
     fd_set rset, rset_cpy;
@@ -263,7 +234,6 @@ int main(int argc, char *argv[]){
 		printf("socket creation failed");
 		exit(0);
 	}
-
 	memset(&mynodeaddr_tcp_c, 0, sizeof(mynodeaddr_tcp_c));
 
 	// Filling server information
@@ -276,9 +246,10 @@ int main(int argc, char *argv[]){
     connfd = -1; 
     command_s command;
     command.opt   = (char *) malloc (strlen (argv[0] + 1) * sizeof (char));
+    command.key   = (char *) malloc (strlen (argv[1] + 1) * sizeof (char));
     command.IP    = (char *) malloc (strlen (argv[2] + 1) * sizeof (char));
     command.PORT  = (char *) malloc (strlen (argv[3] + 1) * sizeof (char));
-    command.key   = (char *) malloc (strlen (argv[1] + 1) * sizeof (char));
+    
 
     char *fds; 
     FD_ZERO(&rset);
@@ -314,23 +285,33 @@ int main(int argc, char *argv[]){
     
         if (FD_ISSET(listenfd, &rset_cpy)) {
            
-                len = sizeof(clinodeaddr);
+            len = sizeof(clinodeaddr);
+            if(connfd==-1){
                 connfd = accept(listenfd, (struct sockaddr*)&clinodeaddr, &len);
-                
                 maxfdp1 = max(connfd, maxfdp1)+1;
-                
-                //n=write(connfd, "hello", n);
                 FD_SET(connfd, &rset);
-                printf("O client conectou-se com a socketfd: %d\n", connfd);
-                 // ! fiz uma função que retorna o que é suposto. ver no "split.c"
-                                                            // ! pfv verificar esta função. não dá para todos os comandos.  
-                //close(connfd);
-                //TODO: Handle the data read
-                //TODO: criar função que separa o recebido
-                //TODO: verificar se os commandos estão bem definidos.
-                
-                //printf("O comando recebido foi repartido em:\nOPT:%s\nKey:%s\nIP:%s\nPORT:%s\n", command.opt, command.key, command.IP, command.PORT);
+            }else{
+                connfd2 = accept(listenfd, (struct sockaddr*)&clinodeaddr, &len);
+                maxfdp1 = max(connfd2, maxfdp1)+1;
+                FD_SET(connfd2, &rset);
             }
+            
+            
+            //maxfdp1 = max(connfd, maxfdp1)+1;
+            
+            //n=write(connfd, "hello", n);
+            //FD_SET(connfd, &rset);
+      
+            printf("O client conectou-se com a socketfd: %d\n", connfd);
+                // ! fiz uma função que retorna o que é suposto. ver no "split.c"
+                                                        // ! pfv verificar esta função. não dá para todos os comandos.  
+            //close(connfd);
+            //TODO: Handle the data read
+            //TODO: criar função que separa o recebido
+            //TODO: verificar se os commandos estão bem definidos.
+            
+            //printf("O comando recebido foi repartido em:\nOPT:%s\nKey:%s\nIP:%s\nPORT:%s\n", command.opt, command.key, command.IP, command.PORT);
+        }
                     
 
         // if udp socket is readable receive the message.
@@ -351,17 +332,39 @@ int main(int argc, char *argv[]){
         if(FD_ISSET(connfd, &rset_cpy)){
             //read from connfd
 
-            bzero(buf, sizeof(buf));
-            n=read(connfd,buf, sizeof(buf));
+            bzero(buf, 20);
+            n=read(connfd,buf, 20);
+            buf[strlen(buf)-1]='\0';
+            printf("BUFF = %s\n", buf);
+            
+            string_to_command(buf, &command);
+            printf("COMMAND REVEIVED:\n%s\n%s\n%s\n%s\n", command.opt ,command.key, command.IP, command.PORT);
+            printf("Recebi mensagem de um cliente que já estava conectado: %d\nMensagem:%s\n", connfd, buf);
+            
             string_to_command (buf, &command);
             printf("\nTeste ao command: %s\n\n", command.IP);
             //buf[strlen(buf)-1]='\0';
-            printf("Recebi mensagem de um cliente que já estava conectado: %d\nMensagem:%s\n", connfd, buf);
             
+                
             n=write(connfd, "ACK\n", n);
+               
+            }
+         if(FD_ISSET(connfd2, &rset_cpy)){
+            //read from connfd
+
+            bzero(buf, 20);
+            n=read(connfd2,buf, 20);
+            printf("Recebi mensagem de um cliente que já estava conectado: %d\nMensagem:%s\n", connfd2, buf);
+            buf[strlen(buf)-1]='\0';
+            string_to_command (buf, &command);
+            printf("\nTeste ao command: %s\n\n", command.IP);
+            //buf[strlen(buf)-1]='\0';
             
-        }
-        
+                
+            n=write(connfd2, "ACK\n", n);
+               
+            }   
+            
         if(FD_ISSET(STDIN_FILENO, &rset_cpy)){
             int i=0;
             bzero(buf, sizeof(buf));
@@ -369,31 +372,50 @@ int main(int argc, char *argv[]){
             buf[strlen(buf)-1]='\0';
             printf("User input %s\n", buf);
             /*HANDLE MESSAGES FROM USER INPUT*/
+            //? o buf chega como uma string
             if(strcmp(buf, "n")==0){
                 ring_created = true;
                 new(&ring);
-            }else if(strcmp(buf, "e")==0  || strcmp(buf, "l")==0 || strcmp(buf, "ex")==0){
-                printf("e,s,l pressed\n");
             }else if(strcmp(buf, "s")==0){ //show
                 show(&ring);
-             
-            }else if(strcmp(buf, "\n")==0){
-                continue;
-            }
-        }else continue;
-      
-            //separar string 
-            //split_string(buf); //isto vai ser recebido por sockets de clientes 
-            // pentry: 
-            // verificar se existe o nó "pred", e se não tiver 
-            
+            }else if(buf[0]=='p'){
+                printf("pentry\n");
+                string_to_command(buf, &command);
+                if((verify_ip(command.IP)=="error")){
+                    printf("Given IP in pentry is not valid.\n");
+                    continue;
+                }
+                pred_tcp_s.sin_family = AF_INET;
+	            pred_tcp_s.sin_addr.s_addr = htonl(INADDR_ANY);
+	            pred_tcp_s.sin_port = htons(atoi(command.PORT)); 
+                connect(tcp_c_fd, (struct sockaddr*)&pred_tcp_s, sizeof(pred_tcp_s));
+                
+                //TODO: fazer uma função que passe command para string
 
-        
-        
-      
+                char temp[100];
+                char temp2[]="SELF "; 
+                // "SELF" "+ring.me.ID+" "+ring.me.IP+" "+ring.me.PORT+"\n"
+                printf("hello world!\n");
+                strcpy(temp, temp2);
+                printf("%s\n" ,temp);
+                sprintf(temp2, "%d", ring.me.ID);
+                printf("%s\n" ,temp);
+                strcat(temp, temp2);
+                strcat(temp, " ");
+                strncat(temp, ring.me.IP, sizeof(ring.me.IP)+1);
+                strcat(temp, " ");
+                strcat(temp, ring.me.PORT);
+                strcat(temp, "\n");
+                //strcpy(buf,command_to_string(&command));
+                printf("temp = %s\n", temp);
 
-
+                
+                write(tcp_c_fd, temp, sizeof(temp));
+            }else if(strcmp(buf, "\n")==0)continue;
+        }
+    }/*for*/
         
-        
-    }/*while*/
 }/*main*/
+
+
+//TODO: avaliar as portas 

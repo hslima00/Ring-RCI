@@ -25,6 +25,12 @@ void func(int sockfd, int mode)
 	else{
 		read(sockfd, buff, sizeof(buff));
 		printf("From Server : %s", buff);
+		if(strcmp(buff, "exit\n")==0){
+			close(sockfd);
+			printf("desconectado pelo server porque outro cliente se ligou\n");
+			exit(0);
+		}else;
+		
 		//if ((strncmp(buff, "exit", 4)) == 0) {
 		//	printf("Client Exit...\n");
 			

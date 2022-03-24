@@ -1,4 +1,5 @@
 #define _CRT_SECURE_NO_DEPRECATE
+#define _OPEN_SYS_ITOA_EXT
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -12,7 +13,7 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <stdbool.h>
-#define MAX_CHAR 20
+#define MAX_CHAR 100
 
 #define SERVERPORT 8989
 #define BUFSIZE 4096
