@@ -1,6 +1,4 @@
 make all --print-data-base --no-builtin-variables --no-builtin-rules --question
-make: *** No rule to make target 'all'.  Stop.
- 
 # GNU Make 4.2.1
 # Built for x86_64-pc-linux-gnu
 # Copyright (C) 1988-2016 Free Software Foundation, Inc.
@@ -8,7 +6,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Thu Mar 24 20:32:20 2022
+# Make data base, printed on Fri Mar 25 22:04:34 2022
 
 # Variables
 
@@ -61,7 +59,7 @@ C_TRASH = *.o *.so
 # environment
 VSCODE_LOG_STACK = false
 # environment
-VSCODE_IPC_HOOK_CLI = /mnt/wslg/runtime-dir/vscode-ipc-24ba4ff3-70fb-4929-a049-789fa27826eb.sock
+VSCODE_IPC_HOOK_CLI = /mnt/wslg/runtime-dir/vscode-ipc-35249f59-7c09-41e5-a597-f53e2a3f7356.sock
 # default
 .FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync check-symlink load
 # environment
@@ -79,7 +77,7 @@ MODE = -g
 # default
 .LOADED := 
 # environment
-WSL_INTEROP = /run/WSL/11_interop
+WSL_INTEROP = /run/WSL/12_interop
 # environment
 PULSE_SERVER = /mnt/wslg/PulseServer
 # environment
@@ -93,7 +91,7 @@ OBJS_CTRASH = $(addprefix , $(C_TRASH))
 # environment
 LOGNAME = root
 # environment
-APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = true
 # environment
 VSCODE_HANDLES_UNCAUGHT_ERRORS = true
 # automatic
@@ -147,7 +145,7 @@ PROG_NAME = $(SERVER_NAME)
 # automatic
 <F = $(notdir $<)
 # makefile (from 'Makefile', line 26)
-SERVER_SOURCES = ring_network.c new.c header.h
+SERVER_SOURCES = ring_network.c new.c servers_and_client_creation.c header.h
 # environment
 LC_ALL = C
 # environment
@@ -159,7 +157,7 @@ SUFFIXES :=
 # environment
 WAYLAND_DISPLAY = wayland-0
 # makefile (from 'Makefile', line 25)
-SERVER_OBJS = ring_network.o new.o
+SERVER_OBJS = ring_network.o new.o servers_and_client_creation.o
 # default
 .INCLUDE_DIRS = /usr/include /usr/local/include /usr/include
 # default
@@ -181,9 +179,9 @@ WSL_DISTRO_NAME = Ubuntu-20.04
 
 # Directories
 
-# . (device 2080, inode 59526): 24 files, no impossibilities.
+# . (device 2080, inode 59526): 25 files, no impossibilities.
 
-# 24 files, no impossibilities in 1 directories.
+# 25 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -235,13 +233,19 @@ new.o:
 #  File has not been updated.
 
 # Not a target:
+servers_and_client_creation.o:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
 Makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-03-23 00:22:35.2565499
+#  Last modified 2022-03-25 17:44:18.3010889
 #  File has been updated.
 #  Successfully updated.
 
-server.o: ring_network.c new.c header.h
+server.o: ring_network.c new.c servers_and_client_creation.c header.h
 #  Implicit rule search has not been done.
 #  Modification time never checked.
 #  File has not been updated.
@@ -267,6 +271,15 @@ new.c:
 #  File has not been updated.
 
 # Not a target:
+servers_and_client_creation.c:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+ 
+make: *** No rule to make target 'all'.  Stop.
+ 
+
+# Not a target:
 .DEFAULT:
 #  Implicit rule search has not been done.
 #  Modification time never checked.
@@ -277,7 +290,6 @@ clean:
 #  Modification time never checked.
 #  File has not been updated.
 #  recipe to execute (from 'Makefile', line 60):
- 
 	rm -rf $(C_TRASH)  
 
 clientu:
@@ -293,7 +305,7 @@ ring_network.o:
 #  Modification time never checked.
 #  File has not been updated.
 
-ring: ring_network.o new.o
+ring: ring_network.o new.o servers_and_client_creation.o
 #  Implicit rule search has not been done.
 #  Modification time never checked.
 #  File has not been updated.
@@ -314,19 +326,19 @@ clientt:
 	gcc tcp_client.c -o clientt
 
 # files hash-table stats:
-# Load=20/1024=2%, Rehash=0, Collisions=0/52=0%
+# Load=22/1024=2%, Rehash=0, Collisions=0/56=0%
 # VPATH Search Paths
 
 # No 'vpath' search paths.
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 38 / storage = 352 B / avg = 9 B
-# current buf: size = 8162 B / used = 352 B / count = 38 / avg = 9 B
+# strcache buffers: 1 (0) / strings = 40 / storage = 412 B / avg = 10 B
+# current buf: size = 8162 B / used = 412 B / count = 40 / avg = 10 B
 
-# strcache performance: lookups = 71 / hit rate = 46%
+# strcache performance: lookups = 74 / hit rate = 45%
 # hash-table stats:
-# Load=38/8192=0%, Rehash=0, Collisions=1/71=1%
-# Finished Make data base on Thu Mar 24 20:32:20 2022
+# Load=40/8192=0%, Rehash=0, Collisions=1/74=1%
+# Finished Make data base on Fri Mar 25 22:04:34 2022
 
  

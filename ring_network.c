@@ -177,8 +177,8 @@ void string_to_command (char *buf, command_s *command)
 int main(int argc, char *argv[]){
 
     bool ring_created = false;                           
-    char buf[MAX_CHAR];                     // buffer que vai guardar os caracteres
-    int sret /*return do select*/;     //                              //
+    char buf[MAX_CHAR];                    // buffer que vai guardar os caracteres
+    int sret /*return do select*/; 
     
     ring_s ring;
     struct sockaddr_in clinodeaddr, mynodeaddr_tcp_s, mynodeaddr_tcp_c,
@@ -206,7 +206,10 @@ int main(int argc, char *argv[]){
     } 
 
     // *create TCP listening socket and UDP SERVERS
-
+    printf("here\n");
+    create_tcp_server(&listenfd, &mynodeaddr_tcp_s, &ring);
+    printf("here\n");
+    /*
                     // !TCP SERVER
     if((listenfd = socket(AF_INET, SOCK_STREAM, 0))==-1){
         printf("Error: Listenfd\n");
@@ -220,7 +223,7 @@ int main(int argc, char *argv[]){
         printf("Error: Bind\n");
         exit(0);
     }
-    listen(listenfd, 10);
+    listen(listenfd, 10);*/
 
                     // !UDP SERVER
     udpfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -392,25 +395,14 @@ int main(int argc, char *argv[]){
                 
                 //TODO: fazer uma função que passe command para string
 
-                char temp[100];
-                char temp2[]="SELF "; 
+                
                 // "SELF" "+ring.me.ID+" "+ring.me.IP+" "+ring.me.PORT+"\n"
-                printf("hello world!\n");
-                strcpy(temp, temp2);
-                printf("%s\n" ,temp);
-                sprintf(temp2, "%d", ring.me.ID);
-                printf("%s\n" ,temp);
-                strcat(temp, temp2);
-                strcat(temp, " ");
-                strncat(temp, ring.me.IP, sizeof(ring.me.IP)+1);
-                strcat(temp, " ");
-                strcat(temp, ring.me.PORT);
-                strcat(temp, "\n");
+                sprintf(buf, "%s %d %s %s\n", "SELF", ring.me.ID, ring.me.IP, ring.me.PORT);
                 //strcpy(buf,command_to_string(&command));
-                printf("temp = %s\n", temp);
+                printf("temp = %s\n", buf);
 
                 
-                write(tcp_c_fd, temp, sizeof(temp));
+                write(tcp_c_fd, buf, sizeof(buf));
             }else if(strcmp(buf, "\n")==0)continue;
         }
     }/*for*/

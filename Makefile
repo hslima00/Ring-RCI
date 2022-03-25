@@ -22,8 +22,8 @@ SERVER_NAME = ring
 
 PROG_NAME = $(SERVER_NAME)  
 # Nomes para as fontes e objetos 
-SERVER_OBJS = ring_network.o new.o
-SERVER_SOURCES =ring_network.c new.c header.h
+SERVER_OBJS = ring_network.o new.o servers_and_client_creation.o
+SERVER_SOURCES =ring_network.c new.c servers_and_client_creation.c header.h
 
 
 
