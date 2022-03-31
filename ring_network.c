@@ -10,6 +10,7 @@ char* verify_ip(char* ip_string){
     char *ptr = strtok(ip_string, delim);
     int point_counter=0;
     
+    
     while(ptr != NULL)
 	{
         if(atoi(ptr)<0 || atoi(ptr)>255 || point_counter > 4){
@@ -89,26 +90,7 @@ void initialize_ring_memory(ring_s *ring,int argc, char *argv[]){
 
 
 
-void* handle_connection(int client_socket){
-    char message[BUFSIZE]; 
-    size_t message_bytes;  // size_t: unsigned integer
-    
-  
 
-    //read the client's message -- the name of the file to read 
-    
-    message_bytes=read(client_socket, message, sizeof(message)-1);
-   
-    message[strlen(message)-1] = 0; //null the terminate message and remove the \n
-
-    printf("REQUEST: %s\n", message);
-    write(client_socket, message, message_bytes);
-    close(client_socket);
-
-   
-    return NULL; 
-
-}
 
 int max(int x, int y)
 {
@@ -162,27 +144,29 @@ void string_to_command (char *buf, command_s *command)
   
 
     /* //! DELETE 
-  memset (&command, " ", sizeof (command));
-  command.opt   = (char *) malloc (strlen (args[0] + 1) * sizeof (char));
-  command.IP    = (char *) malloc (strlen (args[2] + 1) * sizeof (char));
-  command.PORT  = (char *) malloc (strlen (args[3] + 1) * sizeof (char));
-  command.key   = (char *) malloc (strlen (args[1] + 1) * sizeof (char));*/
+  memset (&command, " ", sizeof (command));*/
+  command->opt   = (char *) malloc (strlen (args[0] + 1) * sizeof (char));
+  command->IP    = (char *) malloc (strlen (args[2] + 1) * sizeof (char));
+  command->PORT  = (char *) malloc (strlen (args[3] + 1) * sizeof (char));
+  command->key   = (char *) malloc (strlen (args[1] + 1) * sizeof (char));
 
   strcpy (command->opt, args[0]);
   strcpy (command->key, args[1]);
   strcpy (command->IP, args[2]);
   strcpy (command->PORT, args[3]);
+  printf("%s\n", command->PORT);
 }
 
 int main(int argc, char *argv[]){
 
     bool ring_created = false;                           
-    char buf[MAX_CHAR];                    // buffer que vai guardar os caracteres
+    char buf[MAX_CHAR],buf1[MAX_CHAR];                    // buffer que vai guardar os caracteres
     int sret /*return do select*/; 
+    int i=0;
     
-    ring_s ring;
+    ring_s ring, ring1,ring2;
     struct sockaddr_in clinodeaddr, mynodeaddr_tcp_s, mynodeaddr_tcp_c,
-                                    mynodeaddr_udp_s, mynodeaddr_udp_c, pred_tcp_s;
+                                    mynodeaddr_udp_s, mynodeaddr_udp_c, pred_tcp_s,suc_tcp_s;
     socklen_t len;
     ssize_t n; 
     char* message = "Hello Client";
@@ -192,6 +176,7 @@ int main(int argc, char *argv[]){
     int udpfd; /*socket udp */
     int tcp_c_fd;
     int connfd2=-1;
+    command_s command, command1,commandcpy;
 
     int maxfdp1; /*max file descriptors inside table*/
     fd_set rset, rset_cpy;
@@ -204,33 +189,17 @@ int main(int argc, char *argv[]){
         printf("Usage: ./ring i i.IP i.PORT\n");
         exit(-1);
     } 
-
+   
+    
+  
+    
     // *create TCP listening socket and UDP SERVERS
     printf("here\n");
-    create_tcp_server(&listenfd, &mynodeaddr_tcp_s, &ring);
+    listenfd=create_tcp_server(listenfd, &ring);
     printf("here\n");
-    /*
-                    // !TCP SERVER
-    if((listenfd = socket(AF_INET, SOCK_STREAM, 0))==-1){
-        printf("Error: Listenfd\n");
-        exit(0);
-    }
-	bzero(&mynodeaddr_tcp_s, sizeof(mynodeaddr_tcp_s));
-	mynodeaddr_tcp_s.sin_family = AF_INET;
-	mynodeaddr_tcp_s.sin_addr.s_addr = htonl(INADDR_ANY);
-	mynodeaddr_tcp_s.sin_port = htons(atoi(ring.me.PORT));
-    if((bind(listenfd, (struct sockaddr*)&mynodeaddr_tcp_s, sizeof(mynodeaddr_tcp_s)))==-1){
-        printf("Error: Bind\n");
-        exit(0);
-    }
-    listen(listenfd, 10);*/
+   
 
-                    // !UDP SERVER
-    udpfd = socket(AF_INET, SOCK_DGRAM, 0);
-    mynodeaddr_udp_s.sin_family = AF_INET;
-	mynodeaddr_udp_s.sin_addr.s_addr = htonl(INADDR_ANY);
-	mynodeaddr_udp_s.sin_port = htons(atoi(ring.me.PORT));
-    bind(udpfd, (struct sockaddr*)&mynodeaddr_udp_s, sizeof(mynodeaddr_udp_s));
+                    
 
                     //! TCP Client
     if ((tcp_c_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -247,12 +216,13 @@ int main(int argc, char *argv[]){
     maxfdp1= max(udpfd, listenfd) ;
     maxfdp1= max(STDIN_FILENO,maxfdp1)+1;	
     connfd = -1; 
-    command_s command;
-    command.opt   = (char *) malloc (strlen (argv[0] + 1) * sizeof (char));
-    command.key   = (char *) malloc (strlen (argv[1] + 1) * sizeof (char));
-    command.IP    = (char *) malloc (strlen (argv[2] + 1) * sizeof (char));
-    command.PORT  = (char *) malloc (strlen (argv[3] + 1) * sizeof (char));
     
+    //command.opt   = (char *) malloc (strlen (argv[0] + 1) * sizeof (char));
+    //command.key   = (char *) malloc (strlen (argv[1] + 1) * sizeof (char));
+    //command.IP    = (char *) malloc (strlen (argv[2] + 1) * sizeof (char));
+    //command.PORT  = (int *) malloc (strlen (argv[3] + 1) * sizeof (int ));
+    
+
 
     char *fds; 
     FD_ZERO(&rset);
@@ -263,22 +233,17 @@ int main(int argc, char *argv[]){
         FD_SET(STDIN_FILENO, &rset);
         rset_cpy = rset; 
         fds=(char*)&rset;
-
-        
         printf("rset: %d\n",  (unsigned char)fds[0]);
-        //printf("a %d\n",  (unsigned char)fds[1]);
+        
         
         
         /*insert sockets in the fd set*/
         sret = select(maxfdp1, &rset_cpy, NULL, NULL, NULL);
         fds =(char*)&rset_cpy;
         printf("rset_cpy %d\n",  (unsigned char)fds[0]);
-        //FD_SET(connfd, &rset);
         
         
-
-        
-        
+    
         if(sret<=0){
             printf("erro no select\n");
             exit(0);
@@ -287,24 +252,15 @@ int main(int argc, char *argv[]){
         //*if tcp socket is readable then handle it by accepting the connection
     
         if (FD_ISSET(listenfd, &rset_cpy)) {
-           
+           printf("\%s\n", "LISTEN\n");
             len = sizeof(clinodeaddr);
-            if(connfd==-1){
+           
                 connfd = accept(listenfd, (struct sockaddr*)&clinodeaddr, &len);
                 maxfdp1 = max(connfd, maxfdp1)+1;
                 FD_SET(connfd, &rset);
-            }else{
-                connfd2 = accept(listenfd, (struct sockaddr*)&clinodeaddr, &len);
-                maxfdp1 = max(connfd2, maxfdp1)+1;
-                FD_SET(connfd2, &rset);
-            }
+           
             
             
-            //maxfdp1 = max(connfd, maxfdp1)+1;
-            
-            //n=write(connfd, "hello", n);
-            //FD_SET(connfd, &rset);
-      
             printf("O client conectou-se com a socketfd: %d\n", connfd);
                 // ! fiz uma função que retorna o que é suposto. ver no "split.c"
                                                         // ! pfv verificar esta função. não dá para todos os comandos.  
@@ -317,62 +273,66 @@ int main(int argc, char *argv[]){
         }
                     
 
-        // if udp socket is readable receive the message.
-		if (FD_ISSET(udpfd, &rset_cpy)) {
-			len = sizeof(clinodeaddr);
-			bzero(buf, sizeof(buf));
-			n = recvfrom(udpfd, buf, sizeof(buf), 0,
-						(struct sockaddr*)&clinodeaddr, &len);
-			printf("Message from UDP client (shortcut): %s\n",buf);
-            //puts(buf);
-            /*   MESSAGE HANDLER PARA O SHORCUT */
-
-            /*a mensaguem recebida por udp é o buf*/
-			sendto(udpfd, (const char*)message, sizeof(buf), 0,
-				(struct sockaddr*)&clinodeaddr, sizeof(clinodeaddr));
-		}
-
+       
         if(FD_ISSET(connfd, &rset_cpy)){
             //read from connfd
 
-            bzero(buf, 20);
-            n=read(connfd,buf, 20);
-            buf[strlen(buf)-1]='\0';
-            printf("BUFF = %s\n", buf);
+            bzero(buf, sizeof(buf1));
+            buf[strlen(buf1)-1]='\0';
+            n=read(connfd,buf1, sizeof(buf1));
+            printf("BUFF = %s\n", buf1);
+            //printf("COMMAND REVEIVED:\n%s\n%s\n%s\n%s\n", command1.opt ,command1.key, command1.IP, command1.PORT);
+            printf("Recebi mensagem de um cliente que já estava conectado: %d\nMensagem:%s\n", connfd, buf1);
             
-            string_to_command(buf, &command);
-            printf("COMMAND REVEIVED:\n%s\n%s\n%s\n%s\n", command.opt ,command.key, command.IP, command.PORT);
-            printf("Recebi mensagem de um cliente que já estava conectado: %d\nMensagem:%s\n", connfd, buf);
-            
-            string_to_command (buf, &command);
-            printf("\nTeste ao command: %s\n\n", command.IP);
+            //string_to_command (buf, &command);
+            //printf("\nTeste ao command: %s\n\n", command.IP);
             //buf[strlen(buf)-1]='\0';
             
-                
+        
+            printf("MENSAGEM_2ºNOVO:= %s\n", buf1);
+            write(tcp_c_fd, buf1, sizeof(buf1));
+
             n=write(connfd, "ACK\n", n);
+
+            /*Se só existir um nó no anel*/
+            /*Nó i (equiv a u) dá-se a conhecer a j*/
+            /* Nó sozinho diz que seu predecessor é o nó do pentry 
+            j diz que o seu sucessor é o nó antigo*/
+             if (ring.me.ID==ring.pred.ID ){
+            /*j atualiza o seu sucessor para i */
+            ring1.suc.ID=ring.me.ID;
+            ring1.suc.IP=ring.me.IP;
+            ring1.suc.PORT=ring.me.PORT;        
+
+            /*i atualiza ring 2 que tem info do nó i*/
+            /*i atualiza predecessor para j e o seu sucessor para j*/
+            /*Acho que não posso fazer isto( se faço print dá seg fault)*/
+            ring2.me.ID=ring.me.ID;
+            ring2.me.IP=ring.me.IP;
+            ring2.me.PORT=ring.me.PORT;
+            ring2.suc.ID=ring1.me.ID;
+            ring2.suc.IP=ring1.me.IP;
+            ring2.suc.PORT=ring1.me.PORT;
+            ring2.pred.ID=ring1.me.ID;
+            ring2.pred.IP=ring1.me.IP;
+            ring2.pred.PORT=ring1.me.PORT;
+
+             }
+
+
+
+
                
             }
-         if(FD_ISSET(connfd2, &rset_cpy)){
-            //read from connfd
-
-            bzero(buf, 20);
-            n=read(connfd2,buf, 20);
-            printf("Recebi mensagem de um cliente que já estava conectado: %d\nMensagem:%s\n", connfd2, buf);
-            buf[strlen(buf)-1]='\0';
-            string_to_command (buf, &command);
-            printf("\nTeste ao command: %s\n\n", command.IP);
-            //buf[strlen(buf)-1]='\0';
-            
-                
-            n=write(connfd2, "ACK\n", n);
-               
-            }   
+          
             
         if(FD_ISSET(STDIN_FILENO, &rset_cpy)){
             int i=0;
             bzero(buf, sizeof(buf));
             read(STDIN_FILENO,buf, sizeof(buf));
+            bzero(buf1, sizeof(buf1));
             buf[strlen(buf)-1]='\0';
+            buf[strlen(buf1)-1]='\0';
             printf("User input %s\n", buf);
             /*HANDLE MESSAGES FROM USER INPUT*/
             //? o buf chega como uma string
@@ -383,26 +343,72 @@ int main(int argc, char *argv[]){
                 show(&ring);
             }else if(buf[0]=='p'){
                 printf("pentry\n");
-                string_to_command(buf, &command);
+                string_to_command(&buf, &command);
+                bzero(buf1, sizeof(buf1));
+                
                 if((verify_ip(command.IP)=="error")){
                     printf("Given IP in pentry is not valid.\n");
                     continue;
                 }
+                
+                /*Estabelecer pred de no j como sendo o que é dado na cmd*/
                 pred_tcp_s.sin_family = AF_INET;
 	            pred_tcp_s.sin_addr.s_addr = htonl(INADDR_ANY);
 	            pred_tcp_s.sin_port = htons(atoi(command.PORT)); 
+                /*Ligar nó i e nó j*/
                 connect(tcp_c_fd, (struct sockaddr*)&pred_tcp_s, sizeof(pred_tcp_s));
-                
-                //TODO: fazer uma função que passe command para string
-
-                
-                // "SELF" "+ring.me.ID+" "+ring.me.IP+" "+ring.me.PORT+"\n"
-                sprintf(buf, "%s %d %s %s\n", "SELF", ring.me.ID, ring.me.IP, ring.me.PORT);
-                //strcpy(buf,command_to_string(&command));
-                printf("temp = %s\n", buf);
-
-                
+                sprintf(buf, "%s %s %s %s\n", "SELF", command.key, ring.me.IP, command.PORT);
+                printf("MENSAGEM_1ºNOVO:= %s\n", buf);
                 write(tcp_c_fd, buf, sizeof(buf));
+
+
+                /*Passar mensagem SELF do nó j para i*/
+                /*Problema!*/
+                suc_tcp_s.sin_family = AF_INET;
+	            suc_tcp_s.sin_addr.s_addr = htonl(INADDR_ANY);
+	            suc_tcp_s.sin_port = htons(atoi(ring.me.PORT));
+                connect(tcp_c_fd, (struct sockaddr*)&suc_tcp_s, sizeof(suc_tcp_s));
+                sprintf(buf1, "%s %s %s %s\n", "SELF", command.key, ring.me.IP, command.PORT);
+                
+               
+                
+
+
+
+            /* O nó 𝑖 atualiza o seu sucessor para 𝑗
+                Informa o seu antigo sucessor sobre o nó 𝑗 
+                E abre o anel.  
+
+                COMMAND: PRED j j.IP j.port\n
+            /*j inicia predecessor para i*/
+                            
+            ring1.pred.ID=command.key;
+            ring1.pred.IP=command.IP;
+            ring1.pred.PORT=command.PORT;
+
+            ring1.me.ID=ring.me.ID;
+            ring1.me.IP=ring.me.IP;
+            ring1.me.PORT=ring.me.PORT;
+                        
+                            
+                            
+
+            /*i informa o seu antigo sucessor acerca do nó j */
+            /*i dá ao seu antigo sucessor um PRED j.id j.IP j.port\n 
+                ant_suc.me.ID= ring1.me.ID;
+                ant_suc.me.IP=ring1.me.IP;
+                ant_suc.me.PORT=ring1.me.PORT;
+                connect(tcp_c_fd, (struct sockaddr*)&pred_tcp_s, sizeof(pred_tcp_s));
+                sprintf(buf1, "%s %d %s %s\n", "PRED",ant_suc.me.ID, ring1.me.IP,ring1.me.PORT);
+                printf("MENSAGEM = %s\n", buf1);
+                write(tcp_c_fd, buf1, sizeof(buf1));*/
+                            
+
+
+
+
+    
+
             }else if(strcmp(buf, "\n")==0)continue;
         }
     }/*for*/
