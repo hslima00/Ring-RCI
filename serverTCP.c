@@ -1,66 +1,71 @@
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <string.h>
-#define PORT "8989"
+#include<stdio.h> //printf
+#include<sys/types.h>
+#include<netinet/in.h>
+#include<sys/socket.h>
+#include<arpa/inet.h>
+#include<netdb.h>
 
-void main(){
-    // VAR DECLARATION
-    int fd, errcode, newfd; 
-    ssize_t n;
-    socklen_t addrlen;
-    struct addrinfo hints,*res; 
-    struct sockaddr_in addr;
-    char buffer[128];
-    //CRIAR A SOCKET DO TIPO DATA STREAM 
-    fd=socket(AF_INET, SOCK_STREAM, 0);  //TCP
-    if(fd==-1) /*error*/ exit(1);
-    
-    memset(&hints, 0 ,sizeof hints);
-    hints.ai_family=AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
+#define PORT 8888   //The port on which to listen for incoming data
+void error(char *msg)
+{
+    perror(msg);
+    exit(1);
+}
+int main(void)
+{
+    printf("hi\n");
+    struct sockaddr_in serv_addr, cli_addr;
+    int sockfd, newsockfd, n;
+    socklen_t cli_len;
+    char buffer[512];
+    char message[512];
+    char sZhostName[255];
+    gethostname(sZhostName,255);
+    struct hostent *host_entry;
+    host_entry = gethostbyname(sZhostName);
 
 
-    errcode = getaddrinfo(NULL, PORT, &hints, &res);
-    if(errcode != 0) exit(1);
+    //create a socket
+    sockfd=socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0)
+        error("ERROR OPENING SOCKET");
 
-    n=bind(fd, res->ai_addr, res->ai_addrlen);
-    if(n==-1)exit(1);
+    // zero out the structure
+    bzero((char *) &serv_addr, sizeof(serv_addr)); 
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(PORT);
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
 
-    if(listen(fd,5)==-1)exit(1);
+    //bind socket to port
+    if (bind(sockfd, (struct sockaddr *) &serv_addr,
+        sizeof(serv_addr)) < 0)
+            error("ERROR ON BINDING");
 
-    //...
+    //keep listening for data
+    listen(sockfd,5);
+    printf("Listening on ip %s and port %d\n", inet_ntoa (*(struct in_addr *)*host_entry->h_addr_list), ntohs(serv_addr.sin_port));
+    while(1)
+    {
+        cli_len = sizeof(cli_addr);
+        newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &cli_len);
+        if (newsockfd < 0) error("ERROR ON ACCEPT");
 
-    while(1){
-        addrlen = sizeof(addr);
-        /*if((newfd=accept(fd, (struct sockaddr*)&addr, &addrlen))==-1 exit(1);
-        //exit(1);*/
+        while(1)
+        { 
+            bzero(buffer,512);
+            n = read(newsockfd,buffer,511);
+            if(n < 0) error("ERROR READING FROM SOCKET");
+            printf("Friend: %s\n" , buffer);
 
-        if((newfd=accept(fd, (struct sockaddr*)&addr,
-                        &addrlen))==-1)
-                    /*error*/exit(1);
-
-        n=read(newfd,buffer,128);
-        if(n==-1)exit(1);
-        write(1, "received: ", 10);
-        write(1, buffer, n);
-        n=write(newfd, buffer, n);
-        if(n==-1)exit(1); 
-
-        close(newfd);
+            //now reply
+            printf("Please enter the message: ");
+            bzero(buffer,512);
+            fgets(buffer,511,stdin);
+            n = write(newsockfd,buffer, strlen(buffer));
+            if (n < 0) error("ERROR writing to socket");
+        }
+        close(newsockfd);
     }
-
-
-    //....
-
-    freeaddrinfo(res);
-    close(fd); 
-
-
+    close(sockfd);
+    return 0;
 }

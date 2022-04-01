@@ -33,17 +33,17 @@ typedef struct{
 
 typedef struct
 {
-  char *key;
-  char *IP;
-  char *PORT;
-  char *opt;
+  char ID[5];
+  char IP[16];
+  char PORT[10];
+  char opt[10];
 } command_s;
 
 
 typedef struct{
-    int ID; //
-    char *IP;
-    char *PORT;
+    char ID[5]; //! maybe change to char afterwards
+    char IP[16];
+    char PORT[10];
     int tcp_socket;
     int udp_socket;
     sock_s socket; 
@@ -60,4 +60,4 @@ typedef struct{
     node rope; 
 }ring_s;
 
-//int new(ring_s, int, struct sockaddr_in);
+void new(ring_s *ring);

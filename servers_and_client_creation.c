@@ -11,7 +11,7 @@ int create_tcp_server(int listenfd, ring_s *ring){
     printf("inside\n");
 	bzero(&mynodeaddr_tcp_s, sizeof(mynodeaddr_tcp_s));
     printf("inside0\n");
-    //! error here
+    
 	mynodeaddr_tcp_s.sin_family = AF_INET;
     printf("inside1\n");
 	mynodeaddr_tcp_s.sin_addr.s_addr = htonl(INADDR_ANY);
