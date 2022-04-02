@@ -251,9 +251,57 @@ int main(int argc, char *argv[]){
 				(struct sockaddr*)&clinodeaddr, sizeof(clinodeaddr));
 		}
 
-        if (tcp_c_fd && (FD_ISSET(tcp_c_fd, &rset_cpy))){
+        if(connfd && (FD_ISSET(connfd, &rset_cpy))){
             memset(buf,'\0',sizeof(char)*100);
             n=read(connfd,buf, sizeof(char)*100);
+            printf("CONNFD\n");
+            if(n==-1){
+                printf("Error in read\n");
+            }
+            buf[strlen(buf)-1]='\0';
+            printf("BUFF = %s\n", buf);
+
+            if(buf[0]=='S'){
+                printf("este gajo mandou-me um SELF\n");
+            
+                string_to_command(buf, &command);
+                if(ring_created){
+                    //TODO:
+                    //se eu tiver num anel então tenho que mandar uma mensagem ao meu sucessor
+                    // "PRED j j.IP j.PORT\n" sendo j o anel que está a tentar entrar
+                    //* 1- atualizar o sucessor para j
+                    strcpy(ring.suc.ID,command.ID);
+                    strcpy(ring.suc.IP, command.IP);
+                    strcpy(ring.suc.PORT, command.PORT);
+                    //* 2- informa o antigo sucessor sobre o nó j e abre o anel
+                    memset(buf,'\0', sizeof(char)*100);
+                    sprintf(buf, "%s %s %s %s\n", "PRED",command.ID,command.IP,command.PORT);         
+                    write(tcp_s_fd, buf, sizeof(char)*100);  //! se fizer new dá merda??
+                    //* 3- abre o anel
+                    if(tcp_s_fd!=0)close(tcp_s_fd);
+                    tcp_s_fd = connfd;
+
+                }else{ //o anel não está criado.
+                    ring_created = true; 
+                    //neste caso o nó entrante é tanto meu sucessor como meu predecessor 
+                    strcpy(ring.suc.ID,command.ID);
+                    strcpy(ring.suc.IP, command.IP);
+                    strcpy(ring.suc.PORT, command.PORT);
+                    strcpy(ring.pred.ID,command.ID);
+                    strcpy(ring.pred.IP, command.IP);
+                    strcpy(ring.pred.PORT, command.PORT);
+                    tcp_s_fd = connfd;
+                    
+                }
+                mask_size=max(tcp_s_fd, mask_size);
+                connfd=0;   
+                FD_CLR(connfd, &rset);
+            }
+        }
+        
+        if (tcp_c_fd && (FD_ISSET(tcp_c_fd, &rset_cpy))){
+            bzero(buf,sizeof(char)*100);
+            n=read(tcp_c_fd,buf, sizeof(char)*100);
             if(n==-1){
                 printf("Error in read\n");
                 continue;
@@ -284,56 +332,10 @@ int main(int argc, char *argv[]){
                 write(tcp_c_fd, buf, sizeof(char)*100);
             }
 
-
+            FD_CLR(tcp_c_fd, &rset);
         }
 
-        if(connfd && (FD_ISSET(connfd, &rset_cpy))){
-            memset(buf,'\0',sizeof(char)*100);
-            n=read(connfd,buf, sizeof(char)*100);
-            printf("CONNFD\n");
-            if(n==-1){
-                printf("Error in read\n");
-            }
-            buf[strlen(buf)-1]='\0';
-            printf("BUFF = %s\n", buf);
-
-            if(buf[0]=='S'){
-                printf("este gajo mandou-me um SELF\n");
-            
-                string_to_command(buf, &command);
-                if(ring_created){
-                    //TODO:
-                    //se eu tiver num anel então tenho que mandar uma mensagem ao meu sucessor
-                    // "PRED j j.IP j.PORT\n" sendo j o anel que está a tentar entrar
-                    //* 1- atualizar o sucessor para j
-                    strcpy(ring.suc.ID,command.ID);
-                    strcpy(ring.suc.IP, command.IP);
-                    strcpy(ring.suc.PORT, command.PORT);
-                    //* 2- informa o antigo sucessor sobre o nó j e abre o anel
-                    memset(buf,'\0', sizeof(char)*100);
-                    sprintf(buf, "%s %s %s %s\n", "PRED",command.ID,command.IP,command.PORT);         
-                    write(tcp_s_fd, buf, sizeof(char)*100);
-                    //* 3- abre o anel
-                    if(tcp_s_fd!=0)close(tcp_s_fd);
-                    tcp_s_fd = connfd;
-
-                }else{ //o anel não está criado.
-                    ring_created = true; 
-                    //neste caso o nó entrante é tanto meu sucessor como meu predecessor 
-                    strcpy(ring.suc.ID,command.ID);
-                    strcpy(ring.suc.IP, command.IP);
-                    strcpy(ring.suc.PORT, command.PORT);
-                    strcpy(ring.pred.ID,command.ID);
-                    strcpy(ring.pred.IP, command.IP);
-                    strcpy(ring.pred.PORT, command.PORT);
-                    tcp_s_fd = connfd;
-                    
-                }
-                mask_size=max(tcp_s_fd, mask_size);
-                connfd=0;   
-                FD_CLR(connfd, &rset);
-            }
-        }
+        
         
         if(tcp_s_fd && (FD_ISSET(tcp_s_fd, &rset_cpy))){
             
@@ -361,6 +363,8 @@ int main(int argc, char *argv[]){
             if((strcmp(buf, "n") ==0) && (ring_created == false)){
                 ring_created = true;
                 new(&ring);
+            }else if((strcmp(buf, "n") ==0) && (ring_created == true)){
+                printf("Ring already created\n");
             }else if(strcmp(buf, "s")==0){ //show
                 show(&ring);
             }else if(buf[0]=='p'){
