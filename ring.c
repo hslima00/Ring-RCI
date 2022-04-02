@@ -188,8 +188,7 @@ int main(int argc, char *argv[]){
 	mynodeaddr_tcp_c.sin_addr.s_addr = inet_addr(ring.me.IP);
 
     mask_size= max(udpfd, listenfd) ;
-    mask_size= max(STDIN_FILENO,mask_size)+1;	
-    connfd = -1; 
+    mask_size= max(STDIN_FILENO,mask_size)+1;	 
     command_s command;
 
     memset(&command, 0, sizeof(command_s));
@@ -268,7 +267,7 @@ int main(int argc, char *argv[]){
                 strcpy(ring.pred.IP, command.IP);
                 strcpy(ring.pred.PORT, command.PORT);
                 //*fechar a socket com o meu antigo pred, i 
-                close(tcp_c_fd);
+                if(tcp_c_fd != 0)close(tcp_c_fd);
                 if((tcp_c_fd = socket(AF_INET, SOCK_STREAM, 0))==-1){
                     perror("socket creation failed");
                     exit(0);
@@ -315,7 +314,7 @@ int main(int argc, char *argv[]){
                     sprintf(buf, "%s %s %s %s\n", "PRED",command.ID,command.IP,command.PORT);         
                     write(tcp_s_fd, buf, sizeof(char)*100);
                     //* 3- abre o anel
-                    close(tcp_s_fd);
+                    if(tcp_s_fd!=0)close(tcp_s_fd);
                     tcp_s_fd = connfd;
 
                 }else{ //o anel não está criado.

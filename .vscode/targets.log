@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Sat Apr  2 00:52:43 2022
+# Make data base, printed on Sat Apr  2 15:25:24 2022
 
 # Variables
 
@@ -63,7 +63,7 @@ C_TRASH = *.o *.so
 # environment
 VSCODE_LOG_STACK = false
 # environment
-VSCODE_IPC_HOOK_CLI = /mnt/wslg/runtime-dir/vscode-ipc-507ac6cf-1800-40da-ac86-e99bd2fb1181.sock
+VSCODE_IPC_HOOK_CLI = /mnt/wslg/runtime-dir/vscode-ipc-87ce06ad-69e5-4f13-b2c4-f53384d17b22.sock
 # default
 .FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync check-symlink load
 # environment
@@ -83,7 +83,7 @@ MODE = -g
 # default
 .LOADED := 
 # environment
-WSL_INTEROP = /run/WSL/6334_interop
+WSL_INTEROP = /run/WSL/10_interop
 # environment
 PULSE_SERVER = /mnt/wslg/PulseServer
 # environment
@@ -97,7 +97,7 @@ OBJS_CTRASH = $(addprefix , $(C_TRASH))
 # environment
 LOGNAME = root
 # environment
-APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = true
 # environment
 VSCODE_HANDLES_UNCAUGHT_ERRORS = true
 # makefile (from 'Makefile', line 31)
@@ -189,9 +189,9 @@ WSL_DISTRO_NAME = Ubuntu-20.04
 
 # Directories
 
-# . (device 2080, inode 59526): 23 files, no impossibilities.
+# . (device 2080, inode 59526): 24 files, no impossibilities.
 
-# 23 files, no impossibilities in 1 directories.
+# 24 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -326,12 +326,12 @@ tcpclient: A_tcp_client.c tcpclient
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 41 / storage = 442 B / avg = 10 B
-# current buf: size = 8162 B / used = 442 B / count = 41 / avg = 10 B
+# strcache buffers: 1 (0) / strings = 40 / storage = 427 B / avg = 10 B
+# current buf: size = 8162 B / used = 427 B / count = 40 / avg = 10 B
 
-# strcache performance: lookups = 80 / hit rate = 48%
+# strcache performance: lookups = 81 / hit rate = 50%
 # hash-table stats:
-# Load=41/8192=1%, Rehash=0, Collisions=1/80=1%
-# Finished Make data base on Sat Apr  2 00:52:43 2022
+# Load=40/8192=0%, Rehash=0, Collisions=1/81=1%
+# Finished Make data base on Sat Apr  2 15:25:24 2022
 
  
