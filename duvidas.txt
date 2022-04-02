@@ -29,3 +29,9 @@ int main(){
   
   return(0);
 }
+
+
+Medium *** 
+interface do utilizador 
+
+pentry i i.IP i.PORT

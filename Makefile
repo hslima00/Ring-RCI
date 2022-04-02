@@ -17,42 +17,51 @@ OBJS_CTRASH = $(addprefix , $(C_TRASH))
 SO_CTRASH = $(addprefix , $(C_TRASH))
 
 # Nomes para os executaveis 
-SERVER_NAME = ring
-
-
-PROG_NAME = $(SERVER_NAME)  
+RING_NAME = ring
+TCP_CLIENT_NAME = tcpclient
+UDP_CLIENT_NAME= udpclient
+PROG_NAME = $(RING_NAME) 
 # Nomes para as fontes e objetos 
-SERVER_OBJS = ring_network.o new.o servers_and_client_creation.o
-SERVER_SOURCES =ring_network.c new.c servers_and_client_creation.c header.h
 
+RING_OBJS = ring.o new.o
+RING_SOURCES = ring.c new.o
 
+TCP_CLIENT_SOURCES = A_tcp_client.c
+
+UDP_CLIENT_SOURCES = A_UDPClient.c
 
 ################################################################################
 ################################################################################
-.PHONY: default server SERVER
+.PHONY: default  tcpclient udpclient udpc tcpc
 default: $(PROG_NAME)
-
-server: SERVER
-SERVER: $(SERVER_NAME)
-
-
+udpc: udpclient
+tcpc: tcpclient
+udpclient:$(UDP_CLIENT_NAME)
+tcpclient:$(TCP_CLIENT_NAME)
 
 ################################################################################
 # Compilacao e geracao de executaveis                               
-################################################################################
-$(SERVER_NAME):  $(SERVER_OBJS) 
-	$(CC) $(MODE)  $(CFLAGS) -o $@  $(SERVER_OBJS) 
+################################################################################ 
+
+$(RING_NAME):  $(RING_OBJS)
+	$(CC) $(MODE) -L. $(CFLAGS) -o $@ $(RING_OBJS) 
 
 
-server.o: $(SERVER_SOURCES)
+ring.o: $(RING_SOURCES)
 	$(CC) $(MODE) $(CFLAGS) -c $< -o $@ 
+
+$(TCP_CLIENT_NAME):  $(TCP_CLIENT_SOURCES)
+	$(CC) $(MODE)  $(CFLAGS) A_tcp_client.c -o tcpclient 
+
+$(UDP_CLIENT_NAME):  $(UDP_CLIENT_SOURCES)
+	$(CC) $(MODE)  $(CFLAGS) A_UDPClient.c -o udpclient  
 
 
 
 ################################################################################
 # limpeza de ficheiros inerentes a geracao do executavel  
 ################################################################################
-.PHONY: cleanall
+.PHONY: clean cleanall
  
 cleanall: clean cleanExe  
 
@@ -60,9 +69,5 @@ clean:
 	rm -rf $(C_TRASH)  
 
 cleanExe:
-	rm -rf $(PROG_NAME) clientt clientu server clientm
+	rm -rf $(PROG_NAME)
 
-clientt: 
-	gcc tcp_client.c -o clientt
-clientu:
-	gcc udp_client.c -o clientu

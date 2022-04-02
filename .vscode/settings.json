@@ -2,8 +2,8 @@
     "makefile.extensionOutputFolder": "./.vscode",
     "makefile.launchConfigurations": [
         {
-            "cwd": "{workSpace}",
-            "binaryPath": "{workSpace}/ring",
+            "cwd": "/home/RCI/Code",
+            "binaryPath": "/home/RCI/Code/ring.proj",
             "binaryArgs": []
         }
     ]
