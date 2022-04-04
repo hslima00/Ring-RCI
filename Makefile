@@ -8,7 +8,7 @@
 
 # variaveis do compilador
 CC = gcc
-MODE = -g
+MODE = -g3
 CFLAGS = -Wall -pedantic -Wextra
 
 # Variaveis para limpeza de ficheiros inerentes a geracao do executavel 
