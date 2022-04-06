@@ -168,7 +168,6 @@ int main(int argc, char *argv[]){
                                     mynodeaddr_udp_s, /*mynodeaddr_udp_c,*/ pred_tcp_s;
     socklen_t len;
     ssize_t n; 
-
     int listenfd=0;/*socket listen do tcp server*/
     int connfd=0; /*socket tcp returned from connect*/
     int udpfd=0; /*socket udp */
@@ -189,6 +188,7 @@ int main(int argc, char *argv[]){
 
                     // !TCP SERVER
     //TODO: Passar para fora
+    //
     if((listenfd = socket(AF_INET, SOCK_STREAM, 0))==-1){
         printf("Error: Listenfd\n");
         exit(0);
@@ -221,6 +221,7 @@ int main(int argc, char *argv[]){
    
     int alone_in_a_ring; //is 0 if alone in a ring
     FD_ZERO(&rset);
+	FD_SET(STDIN_FILENO, &rset_cpy);
     for (;;) {
         
         redefine_mask_size(&rset, &mask_size, listenfd, udpfd, connfd, tcp_s_fd, tcp_c_fd);
@@ -234,7 +235,7 @@ int main(int argc, char *argv[]){
         //printf("rset: %d\n",  (unsigned char)fds[0]); 
         
         /*insert sockets in the fd set*/
-        sret = select(mask_size+1, &rset_cpy, (fd_set*)NULL, (fd_set*)NULL, (struct timeval *)NULL);
+        sret = select(mask_size+1, &rset_cpy, NULL, NULL, NULL);
         
         //fds =(char*)&rset_cpy;
         //printf("rset_cpy %d\n",  (unsigned char)fds[0]);
@@ -248,7 +249,6 @@ int main(int argc, char *argv[]){
         //*if tcp socket is readable then handle it by accepting the connection
         if (listenfd && (FD_ISSET(listenfd, &rset_cpy))) {
              
-            FD_CLR(listenfd, &rset);
             len = sizeof(struct sockaddr_in);
             //if(connfd != 0)close(connfd);
             connfd = accept(listenfd, (struct sockaddr*)&clinodeaddr, &len);
@@ -271,7 +271,7 @@ int main(int argc, char *argv[]){
 		}
 
         else if(connfd && (FD_ISSET(connfd, &rset_cpy))){
-            FD_CLR(connfd, &rset);
+           
             
             n=read(connfd,buf, sizeof(char)*100);
             printf("CONNFD\n");
@@ -285,11 +285,12 @@ int main(int argc, char *argv[]){
                 printf("este gajo mandou-me um SELF\n");
                 string_to_command(buf, &command);
                 if(ring_created){ // se o anel estiver criado
-                    if(alone_in_a_ring != 0){ //verifica se não está sozinho no anel
+                    //if(alone_in_a_ring != 0){ //verifica se não está sozinho no anel
                         sprintf(buf, "%s %s %s %s\n", "PRED",command.ID,command.IP,command.PORT);         
                         write(tcp_s_fd, buf, sizeof(char)*100);  
                         close(tcp_s_fd);
-                    }else{ //está sozinho no anel 
+                        
+                    //}else{ //está sozinho no anel 
                         //é o meu pred e suc ao mm tempo
                         
                         strcpy(ring.pred.ID,command.ID);
@@ -300,33 +301,36 @@ int main(int argc, char *argv[]){
                         sprintf(buf, "%s %s %s %s\n", "SELF",ring.me.ID,ring.me.IP,ring.me.PORT);
                         write(tcp_c_fd, buf, sizeof(char)*100);
                         
-                    }
-                }else{ //o anel não está criado.
+                   // }
+                }
+                else{ //o anel não está criado.
                     ring_created = true; 
                 }
                 strcpy(ring.suc.ID,command.ID);
                 strcpy(ring.suc.IP, command.IP);
                 strcpy(ring.suc.PORT, command.PORT);
                 //if(tcp_s_fd!=0)close(tcp_s_fd);
-                tcp_s_fd = connfd;
-                connfd=0;   
+                 
                 
             }
+             tcp_s_fd = connfd;
+                connfd=0; 
         }
         
         else if (tcp_c_fd && (FD_ISSET(tcp_c_fd, &rset_cpy))){
-            FD_CLR(tcp_c_fd, &rset);
+           
             n=read(tcp_c_fd,buf, sizeof(char)*100);
             if(n==-1){
                 printf("Error in read\n");
                 continue;
             }
-        
+            printf("\nEntrei tcp_c_fd\n");
             //* vou receber o meu novo pred nesta mensagem
             string_to_command(buf, &command);
             if(*buf=='P'){
                 printf("Recebi um PRED\n");
-                if(ring_created){
+
+            if(ring_created){
                     //* atualiza o seu pred 
                     strcpy(ring.pred.ID,command.ID);
                     strcpy(ring.pred.IP, command.IP);
@@ -338,7 +342,7 @@ int main(int argc, char *argv[]){
                     tcp_c_fd=temp_fd;
                     sprintf(buf, "%s %s %s %s\n", "SELF",ring.me.ID,ring.me.IP,ring.me.PORT);
                     write(tcp_c_fd, buf, sizeof(char)*100);
-                } 
+            } 
             }
            
 
@@ -347,7 +351,7 @@ int main(int argc, char *argv[]){
 
 
         else if(FD_ISSET(0, &rset_cpy)){
-            FD_CLR(0, &rset);
+            
             
             read(STDIN_FILENO,buf, sizeof(char)*100); //reads the stdin
             buf[strlen(buf)-1]='\0'; //removes \n from buffer
@@ -372,9 +376,20 @@ int main(int argc, char *argv[]){
                 // cria a socket do client (que vai mandar o "PRED")
                 create_tcp_client(&tcp_c_fd, command.IP, command.PORT, &pred_tcp_s);
                 // mando o SELF do tcp_c_fd para pred_tcp_s
-                sprintf(buf, "%s %s %s %s\n", "SELF",ring.me.ID,ring.me.IP,ring.me.PORT);
+                sprintf(buf, "%s %s %s %s\n", "SELFi",ring.me.ID,ring.me.IP,ring.me.PORT);
                 write(tcp_c_fd, buf, sizeof(char)*100); /*sends SELF to connfd*/
-            }else if(strcmp(buf, "\n")==0)continue;
+            }
+            else if (buf[0]=='l')
+            {
+                
+                strcpy(ring.pred.ID, command.ID);
+                strcpy(ring.pred.IP, command.IP);
+                strcpy(ring.pred.PORT, command.PORT);
+                sprintf(buf, "%s %s %s %s\n", "PRED",ring.pred.ID,ring.pred.IP,ring.pred.PORT);
+                write(tcp_c_fd, buf, sizeof(char)*100); /*sends SELF to connfd*/
+            }
+            
+            else if(strcmp(buf, "\n")==0)continue;
         }
     }/*for*/
         

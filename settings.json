@@ -1,0 +1,10 @@
+{
+    "makefile.extensionOutputFolder": "./.vscode",
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/RCI/Code",
+            "binaryPath": "/home/RCI/Code/ring.proj",
+            "binaryArgs": []
+        }
+    ]
+}
