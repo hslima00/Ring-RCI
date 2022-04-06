@@ -35,3 +35,11 @@ Medium ***
 interface do utilizador 
 
 pentry i i.IP i.PORT
+
+
+
+
+
+show do nó que faz o new, e recebe todos os pentry deixa de conseguir fazer show 
+
+leave -> não faz a conexão que é suposto

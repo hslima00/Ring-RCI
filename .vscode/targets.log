@@ -1,6 +1,4 @@
 make all --print-data-base --no-builtin-variables --no-builtin-rules --question
-make: *** No rule to make target 'all'.  Stop.
-
 # GNU Make 4.2.1
 # Built for x86_64-pc-linux-gnu
 # Copyright (C) 1988-2016 Free Software Foundation, Inc.
@@ -8,7 +6,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Mon Apr  4 22:06:55 2022
+# Make data base, printed on Wed Apr  6 14:55:36 2022
 
 # Variables
 
@@ -63,7 +61,7 @@ C_TRASH = *.o *.so
 # environment
 VSCODE_LOG_STACK = false
 # environment
-VSCODE_IPC_HOOK_CLI = /mnt/wslg/runtime-dir/vscode-ipc-e82b37ce-1286-4533-b36c-fa255545c3e3.sock
+VSCODE_IPC_HOOK_CLI = /mnt/wslg/runtime-dir/vscode-ipc-7bb74963-f916-4bce-8853-87c6d83fe7c0.sock
 # default
 .FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync check-symlink load
 # environment
@@ -277,8 +275,10 @@ ring: ring.o new.o
 #  File has not been updated.
 #  recipe to execute (from 'Makefile', line 47):
 	$(CC) $(MODE) -L. $(CFLAGS) -o $@ $(RING_OBJS) 
-
  
+make: *** No rule to make target 'all'.  Stop.
+
+
 ring.o: ring.c new.o
 #  Implicit rule search has not been done.
 #  Modification time never checked.
@@ -334,6 +334,6 @@ tcpclient: A_tcp_client.c tcpclient
 # strcache performance: lookups = 80 / hit rate = 51%
 # hash-table stats:
 # Load=39/8192=0%, Rehash=0, Collisions=1/80=1%
-# Finished Make data base on Mon Apr  4 22:06:55 2022
+# Finished Make data base on Wed Apr  6 14:55:36 2022
 
  
