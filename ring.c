@@ -226,7 +226,7 @@ int main(int argc, char *argv[]){
 
     //char *fds; 
    
-   
+   //
     //int alone_in_a_ring; //is 0 if alone in a ring
     FD_ZERO(&rset);
 	FD_SET(STDIN_FILENO, &rset_cpy);
