@@ -1,6 +1,20 @@
 #include "header.h"
 
+//! notes on search a key 
+// array que guarda um searched_key number associado à posição da array(mete a -1 quando receber a resposta)
+// ou seja primeira busca iniciada no meu no há de ser na array[0]=seached_key
+// segunda array[1]=searched_key segunda busca etc etc 
+// quando chega um rsp com o meu key vou ver no array[n(que vem na mensagem)] qual era o k que eu tinha procurado e onde está 
+//! guardar o address de buscas por UDP [isto é EFNDS por alguém fora do ring](pelo menos 5 adresses )
+// posso reservar as primeiras 5 posições do array para guardar esses (usando um k que vai de 0 a 4 se estiver em quatro e não
+//tiver o searched_key do de nunhum k a -1 não inicia busca (nem responde com ACK) ) 
+//! ^altamente improvável
+// sendo assim o n irá de 5 a 99 FND'S fazer memset a -1 quando saí do ring  e quando começa o programa !
+// a array vai guardar char's por isso é tudo feito com strcpy e strcmp! º
+//k e n vão ser static_int e levam reset quando chegam ao máximo
+//(caso a posição 0 esteja vazia senão tentamos encontrar uma vazia(strcmp(array[n],'-1') incrementando)
 //returns 1 if not valid, 0 if valid
+
 bool verify_ip(char* ip_string){ 
 
 	char delim[] = ".";
@@ -25,6 +39,24 @@ bool verify_ip(char* ip_string){
     return 0;
     
 }
+
+int distance(char* ID1, char* ID2){
+    int l = 0;
+    int k = 0;
+    int N = 32;
+    k = atoi(ID1);
+    l = atoi(ID2);
+    int resto;
+    resto = (l-k)%N;
+    if(resto<0){
+        resto = resto+32;
+    }
+    printf("distancia entre %s e %s = %d\n", ID1, ID2 ,resto);
+
+    return resto; 
+}
+
+
 //close and sets to 0 all sockets
 void close_all_sockets(int listenfd,int udpfd,int connfd,int tcp_s_fd,int tcp_c_fd){
     if(listenfd != 0)close(listenfd);
@@ -123,6 +155,26 @@ void  redefine_mask_size(fd_set *rset, int *mask_size, int listenfd,int udpfd,in
     } 
 }
 
+char* split_find(char *buf){
+    char delim[] = " ";
+    char *ptr = strtok (buf, delim);
+    char *temp;
+    int arg_counter = 0;
+    char *args[3];
+    while (ptr != NULL)
+    {
+      args[arg_counter] = (char *) malloc ((strlen(ptr)+1) * sizeof (char));
+      strcpy (args[arg_counter], ptr);
+      
+      ptr = strtok (NULL, delim);
+      printf("arg[%d]=%s\n", arg_counter, args[arg_counter]);
+      arg_counter++;
+
+    }
+
+    return temp;
+}
+
 bool string_to_command (char *buf, command_s *command)
 {
 
@@ -216,7 +268,11 @@ int main(int argc, char *argv[]){
     size_t size; 
     bool ring_created = false; 
     bool print_mask = false; 
-    bool leave = false;                          
+    bool leave = false;      
+    char key_to_f[10]; //find
+    char trash[5]; //find
+    int n_sec=0; //numero de sequencia para o find
+    char n_sec_str[5]; //find
     char buf[MAX_CHAR];                     // buffer que vai guardar os caracteres
     int sret /*return do select*/=0;     //                              //
     ring_s ring;
@@ -345,11 +401,33 @@ int main(int argc, char *argv[]){
                 memset(&ring.suc, 0, sizeof(node));
                 printf("Leave\n");
                 
+            }else if(strcmp(buf, "d")==0){
+                printf("distance\n");
+                distance(ring.me.ID, ring.pred.ID);
+            }else if(*buf=='f'){
+                
+                sscanf(buf, "%s %s", trash, key_to_f);
+                if(key_to_f == ring.me.ID){
+                    printf("It's me you dumbass\n");
+                    continue;
+                }else if(distance(ring.me.ID,key_to_f)>distance(ring.suc.ID, key_to_f)){//passar para o suc
+                    //TODO: check distance between chord if i have one
+                    //* se não tiver chord delego a procura ao suc 
+                    memset(buf, 0, sizeof(buf));
+                    n_sec = 3*atoi(ring.me.ID);
+                    //sprintf(n_sec_str, "%d", n_sec);
+                    sprintf(buf, "%s %s %d %s %s %s\n", "FND", key_to_f, n_sec, ring.me.ID, ring.me.IP, ring.me.PORT);
+                    printf("BUF = %s\n", buf);
+                    write(tcp_s_fd, buf, strlen(buf));
+                }else{ // o objeto é meu
+                    printf("O objeto é meu\n");
+                }
+                
+                
             }
-            else if(strcmp(buf, "ex")){
-                //exit
-            }
-            else if(strcmp(buf, "\n")==0)continue;
+            else continue;
+            
+            
         }
         //*if tcp socket is readable then handle it by accepting the connection
         else if (listenfd && (FD_ISSET(listenfd, &rset_cpy))) {
@@ -462,6 +540,10 @@ int main(int argc, char *argv[]){
                             sprintf(buf, "%s %s %s %s\n", "SELF",ring.me.ID,ring.me.IP,ring.me.PORT);
                             write(tcp_c_fd, buf, strlen(buf));
                     } 
+                }
+                if(buf[0]=='F'){
+                    //fflush(stdin);
+                    printf("RECEBI UM FIND\n");
                 }
             }else{
                 close(tcp_c_fd);
