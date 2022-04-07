@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Wed Apr  6 22:43:20 2022
+# Make data base, printed on Thu Apr  7 14:39:06 2022
 
 # Variables
 
@@ -17,7 +17,7 @@ make: *** No rule to make target 'all'.  Stop.
 # automatic
 ?F = $(notdir $?)
 # environment
-WSLENV = ELECTRON_RUN_AS_NODE/w:
+WSLENV = VSCODE_WSL_EXT_LOCATION/up
 # default
 .SHELLFLAGS := -c
 # environment
@@ -35,7 +35,7 @@ SHELL = /bin/sh
 # environment
 VSCODE_NLS_CONFIG = {"locale":"en","availableLanguages":{}}
 # environment
-_ = /mnt/c/Users/hslim/AppData/Local/Programs/Microsoft VS Code/bin/code
+_ = /root/.vscode-server/bin/e18005f0f1b33c29e81d732535d8c0e47cafb0b5/node
 # makefile (from 'Makefile', line 12)
 CFLAGS = -Wall -pedantic -Wextra
 # makefile (from 'Makefile', line 1)
@@ -53,7 +53,7 @@ VSCODE_CWD = /mnt/c/Users/hslim/AppData/Local/Programs/Microsoft VS Code
 # default
 MAKE_HOST := x86_64-pc-linux-gnu
 # environment
-PATH = /root/.vscode-server/bin/e18005f0f1b33c29e81d732535d8c0e47cafb0b5/bin/remote-cli:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/Program Files (x86)/Common Files/Intel/Shared Libraries/redist/intel64/compiler:/mnt/c/Windows/system32:/mnt/c/Windows:/mnt/c/Windows/System32/Wbem:/mnt/c/Windows/System32/WindowsPowerShell/v1.0/:/mnt/c/Windows/System32/OpenSSH/:/mnt/c/Program Files/NVIDIA Corporation/NVIDIA NvDLISR:/mnt/c/WINDOWS/system32:/mnt/c/WINDOWS:/mnt/c/WINDOWS/System32/Wbem:/mnt/c/WINDOWS/System32/WindowsPowerShell/v1.0/:/mnt/c/WINDOWS/System32/OpenSSH/:/mnt/c/Program Files/Git/cmd:/mnt/c/Program Files/Polyspace/R2021a/runtime/win64:/mnt/c/Program Files/Polyspace/R2021a/bin:/mnt/c/Program Files/Portugal Identity Card/:/mnt/c/Users/hslim/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/hslim/AppData/Local/Programs/Microsoft VS Code/bin:/mnt/c/Program Files/heroku/bin
+PATH = /root/.vscode-server/bin/e18005f0f1b33c29e81d732535d8c0e47cafb0b5/bin/remote-cli:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/Program Files (x86)/Common Files/Intel/Shared Libraries/redist/intel64/compiler:/mnt/c/Windows/system32:/mnt/c/Windows:/mnt/c/Windows/System32/Wbem:/mnt/c/Windows/System32/WindowsPowerShell/v1.0/:/mnt/c/Windows/System32/OpenSSH/:/mnt/c/Program Files/NVIDIA Corporation/NVIDIA NvDLISR:/mnt/c/WINDOWS/system32:/mnt/c/WINDOWS:/mnt/c/WINDOWS/System32/Wbem:/mnt/c/WINDOWS/System32/WindowsPowerShell/v1.0/:/mnt/c/WINDOWS/System32/OpenSSH/:/mnt/c/Program Files/Git/cmd:/mnt/c/Program Files/Polyspace/R2021a/runtime/win64:/mnt/c/Program Files/Polyspace/R2021a/bin:/mnt/c/Program Files/Portugal Identity Card/:/mnt/c/Users/hslim/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/hslim/AppData/Local/Programs/Microsoft VS Code/bin:/mnt/c/Program Files/heroku/bin:/snap/bin
 # makefile (from 'Makefile', line 22)
 UDP_CLIENT_NAME = udpclient
 # environment
@@ -63,7 +63,7 @@ C_TRASH = *.o *.so
 # environment
 VSCODE_LOG_STACK = false
 # environment
-VSCODE_IPC_HOOK_CLI = /mnt/wslg/runtime-dir/vscode-ipc-44dfc41b-0685-442a-9c08-3bff34dc37d7.sock
+VSCODE_IPC_HOOK_CLI = /mnt/wslg/runtime-dir/vscode-ipc-22a0a05e-1096-47ee-a071-9de6f766ebe4.sock
 # default
 .FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync check-symlink load
 # environment
@@ -83,7 +83,7 @@ MODE = -g3
 # default
 .LOADED := 
 # environment
-WSL_INTEROP = /run/WSL/11826_interop
+WSL_INTEROP = /run/WSL/11_interop
 # environment
 PULSE_SERVER = /mnt/wslg/PulseServer
 # environment
@@ -123,7 +123,7 @@ USER = root
 # makefile
 .DEFAULT_GOAL := default
 # environment
-NAME = Code
+NAME = DESKTOP-E4TNNNA
 # automatic
 %D = $(patsubst %/,%,$(dir $%))
 # makefile (from 'Makefile', line 27)
@@ -189,9 +189,9 @@ WSL_DISTRO_NAME = Ubuntu-20.04
 
 # Directories
 
-# . (device 2080, inode 59526): 31 files, no impossibilities.
+# . (device 2080, inode 59526): 33 files, no impossibilities.
 
-# 31 files, no impossibilities in 1 directories.
+# 33 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -233,7 +233,7 @@ ring.c:
 # Not a target:
 Makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-04-04 22:06:12.788697
+#  Last modified 2022-04-07 12:58:28.7328677
 #  File has been updated.
 #  Successfully updated.
 
@@ -277,8 +277,8 @@ ring: ring.o new.o
 	$(CC) $(MODE) -L. $(CFLAGS) -o $@ $(RING_OBJS) 
 
 ring.o: ring.c new.o
-#  Implicit rule search has not been done.
  
+#  Implicit rule search has not been done.
 #  Modification time never checked.
 #  File has not been updated.
 #  recipe to execute (from 'Makefile', line 51):
@@ -326,12 +326,12 @@ tcpclient: A_tcp_client.c tcpclient
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 47 / storage = 462 B / avg = 9 B
-# current buf: size = 8162 B / used = 462 B / count = 47 / avg = 9 B
+# strcache buffers: 1 (0) / strings = 48 / storage = 469 B / avg = 9 B
+# current buf: size = 8162 B / used = 469 B / count = 48 / avg = 9 B
 
-# strcache performance: lookups = 88 / hit rate = 46%
+# strcache performance: lookups = 90 / hit rate = 46%
 # hash-table stats:
-# Load=47/8192=1%, Rehash=0, Collisions=1/88=1%
-# Finished Make data base on Wed Apr  6 22:43:20 2022
+# Load=48/8192=1%, Rehash=0, Collisions=1/90=1%
+# Finished Make data base on Thu Apr  7 14:39:06 2022
 
  
