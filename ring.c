@@ -25,7 +25,7 @@ bool verify_ip(char* ip_string){
     return 0;
     
 }
-
+//close and sets to 0 all sockets
 void close_all_sockets(int listenfd,int udpfd,int connfd,int tcp_s_fd,int tcp_c_fd){
     if(listenfd != 0)close(listenfd);
     if(udpfd != 0)close(udpfd);
@@ -59,7 +59,7 @@ int valid_arguments(int argc, char *argv[], ring_s *ring){
 }
 
 void show(ring_s *ring, int alone, bool ring_created){
-    int static print = 0;
+    static int print = 0;
     system("clear");
     printf("%30s\n\n","RCI-Anel");
     printf("|%6s\t|%10s\t|%10s\t|%10s\n","NÓ", "CHAVE", "IP", "PORTA");
@@ -102,9 +102,9 @@ int max(int x, int y)
         return y;
 }
 
-void  redefine_mask_size(fd_set *rset, int *mask_size, int listenfd,int udpfd,int connfd,int tcp_s_fd,int tcp_c_fd){
+void  redefine_mask_size(fd_set *rset, int *mask_size, int listenfd,int udpfd,int connfd,int tcp_s_fd,int tcp_c_fd, bool leave){
     *mask_size = 0;
-    FD_SET(0, rset);
+    
     if(listenfd){
         FD_SET(listenfd, rset);
         *mask_size = max(*mask_size, listenfd);
@@ -187,6 +187,10 @@ void create_tcp_server(int *listenfd, char* PORT, struct sockaddr_in *tcp_s ){
         printf("Error: Listenfd\n");
         exit(0);
     }
+    if (setsockopt(*listenfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0){
+        perror("setsockopt(SO_REUSEADDR) failed");
+    }
+    
 	bzero(tcp_s, sizeof(*tcp_s));
 	tcp_s->sin_family = AF_INET;
 	tcp_s->sin_addr.s_addr = htonl(INADDR_ANY);
@@ -200,10 +204,19 @@ void create_tcp_server(int *listenfd, char* PORT, struct sockaddr_in *tcp_s ){
     }
 }
 
+void create_udp_server(int *udpfd, char* PORT, struct sockaddr_in *udp_s){
+    *udpfd = socket(AF_INET, SOCK_DGRAM, 0);
+    udp_s->sin_family = AF_INET;
+	udp_s->sin_addr.s_addr = htonl(INADDR_ANY);
+	udp_s->sin_port = htons(atoi(PORT));
+    bind(*udpfd, (struct sockaddr*)udp_s, sizeof(*udp_s));
+}
+
 int main(int argc, char *argv[]){
     size_t size; 
     bool ring_created = false; 
-    bool print_mask = false;                          
+    bool print_mask = false; 
+    bool leave = false;                          
     char buf[MAX_CHAR];                     // buffer que vai guardar os caracteres
     int sret /*return do select*/=0;     //                              //
     ring_s ring;
@@ -230,11 +243,9 @@ int main(int argc, char *argv[]){
     // *create TCP listening socket and UDP SERVERS
     create_tcp_server(&listenfd, ring.me.PORT, &mynodeaddr_tcp_s);
     //create_udp_server(&udpfd, ring.me.PORT);
-    udpfd = socket(AF_INET, SOCK_DGRAM, 0);
-    mynodeaddr_udp_s.sin_family = AF_INET;
-	mynodeaddr_udp_s.sin_addr.s_addr = htonl(INADDR_ANY);
-	mynodeaddr_udp_s.sin_port = htons(atoi(ring.me.PORT));
-    bind(udpfd, (struct sockaddr*)&mynodeaddr_udp_s, sizeof(mynodeaddr_udp_s));
+
+    create_udp_server(&udpfd, ring.me.PORT, &mynodeaddr_udp_s);
+    
 
 	 
     command_s command;
@@ -250,7 +261,22 @@ int main(int argc, char *argv[]){
 	
     for (;;) {
         
-        redefine_mask_size(&rset, &mask_size, listenfd, udpfd, connfd, tcp_s_fd, tcp_c_fd);
+        if(leave == false){
+            FD_SET(0, &rset);
+            redefine_mask_size(&rset, &mask_size, listenfd, udpfd, connfd, tcp_s_fd, tcp_c_fd, leave);
+        }else if(leave == true){
+            leave = false;
+            listenfd=0;
+            udpfd=0;
+            connfd=0;
+            tcp_c_fd=0;
+            tcp_s_fd=0;
+            create_tcp_server(&listenfd, ring.me.PORT, &mynodeaddr_tcp_s);
+            create_udp_server(&udpfd, ring.me.PORT, &mynodeaddr_udp_s);
+            FD_ZERO(&rset);
+            FD_SET(0, &rset);
+        }
+        
         rset_cpy = rset; 
         
         memset(buf,0,sizeof(char)*100);
@@ -304,9 +330,11 @@ int main(int argc, char *argv[]){
                 // mando o SELF do tcp_c_fd para pred_tcp_s
                 sprintf(buf, "%s %s %s %s\n", "SELF",ring.me.ID,ring.me.IP,ring.me.PORT);
                 write(tcp_c_fd, buf, sizeof(char)*100); /*sends SELF to connfd*/
+                leave=false;
             }
             else if(strcmp(buf, "l")==0){
                 ring_created=0;
+                leave=true;
                 //vou mandar um PRED i i.IP i.port\n ao meu sucessor 
                 //sendo i o meu predecessor
                 sprintf(buf, "%s %s %s %s\n", "PRED",ring.pred.ID,ring.pred.IP,ring.pred.PORT);
