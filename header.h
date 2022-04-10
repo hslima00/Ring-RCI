@@ -37,18 +37,15 @@ typedef struct
   char IP[16];
   char PORT[10];
   char opt[10];
+  char searched_key[5];
+  char n_seq[5];
 } command_s;
 
 
 typedef struct{
-    char ID[5]; //! maybe change to char afterwards
+    char ID[5];
     char IP[16];
     char PORT[10];
-    int tcp_socket;
-    int udp_socket;
-    sock_s socket; 
-    /*char IP_PRED[100];
-    char IP_SUC[100]; */
 }node; 
 
 //estrutura de estruturas com nodes
@@ -57,7 +54,16 @@ typedef struct{
     node pred;
     node suc;
     node me; 
-    node rope; 
+    node chord; 
 }ring_s;
+
+typedef struct
+{
+   int key_to_find; 
+   char addr[INET_ADDRSTRLEN]; //save the address of the guy that asks for the EFND
+   int port;  
+   bool mode; // if EFND 1, FIND 0 
+}find_s;
+
 
 void new(ring_s *ring);

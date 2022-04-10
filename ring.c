@@ -51,7 +51,7 @@ int distance(char* ID1, char* ID2){
     if(resto<0){
         resto = resto+32;
     }
-    printf("distancia entre %s e %s = %d\n", ID1, ID2 ,resto);
+    //printf("distancia entre %s e %s = %d\n", ID1, ID2 ,resto);
 
     return resto; 
 }
@@ -134,7 +134,7 @@ int max(int x, int y)
         return y;
 }
 
-void  redefine_mask_size(fd_set *rset, int *mask_size, int listenfd,int udpfd,int connfd,int tcp_s_fd,int tcp_c_fd, bool leave){
+void  redefine_mask_size(fd_set *rset, int *mask_size, int listenfd,int udpfd, int udp_c_fd,int connfd,int tcp_s_fd,int tcp_c_fd, bool leave){
     *mask_size = 0;
     
     if(listenfd){
@@ -144,14 +144,18 @@ void  redefine_mask_size(fd_set *rset, int *mask_size, int listenfd,int udpfd,in
     if(udpfd){
         FD_SET(udpfd, rset);
         *mask_size = max(*mask_size, udpfd);
-    } 
+    }
+    if(udp_c_fd){
+        FD_SET(udp_c_fd, rset);
+        *mask_size = max(*mask_size, udp_c_fd);
+    }
     if(connfd){
         FD_SET(connfd, rset);
         *mask_size = max(*mask_size, connfd);
     }
     if(tcp_c_fd){
         FD_SET(tcp_c_fd, rset);
-        *mask_size = max(*mask_size, tcp_s_fd); 
+        *mask_size = max(*mask_size, tcp_c_fd); 
     } 
 }
 
@@ -256,12 +260,56 @@ void create_tcp_server(int *listenfd, char* PORT, struct sockaddr_in *tcp_s ){
     }
 }
 
-void create_udp_server(int *udpfd, char* PORT, struct sockaddr_in *udp_s){
-    *udpfd = socket(AF_INET, SOCK_DGRAM, 0);
+void create_udp_server(int *udpfd_s, char* PORT, struct sockaddr_in *udp_s){
+    if((*udpfd_s = socket(AF_INET, SOCK_DGRAM, 0))==-1){
+        printf("Error: creating UDP server\n");
+        exit(0);
+    }
+    if (setsockopt(*udpfd_s, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0){
+        perror("setsockopt(SO_REUSEADDR) failed");
+    }
+    memset(udp_s, 0 ,sizeof(*udp_s));
     udp_s->sin_family = AF_INET;
 	udp_s->sin_addr.s_addr = htonl(INADDR_ANY);
 	udp_s->sin_port = htons(atoi(PORT));
-    bind(*udpfd, (struct sockaddr*)udp_s, sizeof(*udp_s));
+    bind(*udpfd_s, (struct sockaddr*)udp_s, sizeof(*udp_s));
+    printf("UDP Server binded\n");
+}
+void create_udp_client(int *udpfd_c,char *IP, char* PORT, struct sockaddr_in *udp_c){
+    *udpfd_c = socket(AF_INET, SOCK_DGRAM, 0);
+    //if(udpfd_c)
+    udp_c->sin_family = AF_INET;
+    udp_c->sin_addr.s_addr = inet_addr(IP);
+    udp_c->sin_port = htons(atoi(PORT));
+    if(connect(*udpfd_c, (struct sockaddr *)udp_c, sizeof(*udp_c)) < 0)
+    {
+        printf("\n Error : Connect Failed \n");
+        exit(0);
+    } 
+}
+//returns true if mine, false if not 
+bool check_if_key_is_mine(char *my_ID, char *suc_ID, char *key_to_f){
+    
+    if(distance(my_ID,key_to_f)>distance(suc_ID, key_to_f)){
+        return false;
+    }else return true; 
+}
+
+int get_sequence(find_s *store_finds, bool mode, int key_to_find, char *addr, int port){
+    static n_seq=0;
+    do{
+        if(n_seq ==99) n_seq=-1;
+        n_seq ++;
+    }while (store_finds[n_seq].key_to_find!=-1);
+    store_finds[n_seq].key_to_find=key_to_find;
+    store_finds[n_seq].mode = mode;
+    if (mode){ //0 find, 1 EFND
+        strcpy(store_finds[n_seq].addr, addr);
+        store_finds[n_seq].port = port; 
+
+    }
+    
+    return n_seq;
 }
 
 int main(int argc, char *argv[]){
@@ -271,23 +319,26 @@ int main(int argc, char *argv[]){
     bool leave = false;      
     char key_to_f[10]; //find
     char trash[5]; //find
-    int n_sec=0; //numero de sequencia para o find
-    char n_sec_str[5]; //find
+    int n_seq=0; //numero de sequencia para o find
+    char n_seq_str[5]; //find
     char buf[MAX_CHAR];                     // buffer que vai guardar os caracteres
     int sret /*return do select*/=0;     //                              //
     ring_s ring;
     struct sockaddr_in clinodeaddr, mynodeaddr_tcp_s,
-                                    mynodeaddr_udp_s,  pred_tcp_s;
-    socklen_t len;
+                                    udp_s_addr,  pred_tcp_s, udp_c_addr;
+    socklen_t len = sizeof(struct sockaddr_in);
     ssize_t n; 
     int listenfd=0;/*socket listen do tcp server*/
-    int connfd=0; /*socket tcp returned from connect*/
-    int udpfd=0; /*socket udp */
+    int connfd  =0; /*socket tcp returned from connect*/
+    int udp_c_fd=0; /*socket udp */
+    int udp_s_fd=0;
     int tcp_c_fd=0; 
     int tcp_s_fd=0;
     int mask_size; /*max file descriptors inside table*/
     fd_set rset, rset_cpy;
-    
+    find_s store_finds[100];
+    memset(store_finds, -1, sizeof(find_s)*100);
+    //memset(store_finds->key_to_find,-1,sizeof(int)*100);
     initialize_ring_memory(&ring); //sets pred and suc memory to NULL (para n ter lixo) and mallocs memory for self node.
 
     if(valid_arguments(argc - 1, argv + 1, &ring)){
@@ -300,9 +351,9 @@ int main(int argc, char *argv[]){
     create_tcp_server(&listenfd, ring.me.PORT, &mynodeaddr_tcp_s);
     //create_udp_server(&udpfd, ring.me.PORT);
 
-    create_udp_server(&udpfd, ring.me.PORT, &mynodeaddr_udp_s);
+    create_udp_server(&udp_s_fd, ring.me.PORT, &udp_s_addr);
     
-
+    
 	 
     command_s command;
 
@@ -319,16 +370,16 @@ int main(int argc, char *argv[]){
         
         if(leave == false){
             FD_SET(0, &rset);
-            redefine_mask_size(&rset, &mask_size, listenfd, udpfd, connfd, tcp_s_fd, tcp_c_fd, leave);
+            redefine_mask_size(&rset, &mask_size, listenfd, udp_s_fd, udp_c_fd, connfd, tcp_s_fd, tcp_c_fd, leave);
         }else if(leave == true){
             leave = false;
             listenfd=0;
-            udpfd=0;
+            udp_c_fd=0;
             connfd=0;
             tcp_c_fd=0;
             tcp_s_fd=0;
             create_tcp_server(&listenfd, ring.me.PORT, &mynodeaddr_tcp_s);
-            create_udp_server(&udpfd, ring.me.PORT, &mynodeaddr_udp_s);
+            create_udp_server(&udp_s_fd, ring.me.PORT, &udp_s_addr);
             FD_ZERO(&rset);
             FD_SET(0, &rset);
         }
@@ -396,7 +447,7 @@ int main(int argc, char *argv[]){
                 sprintf(buf, "%s %s %s %s\n", "PRED",ring.pred.ID,ring.pred.IP,ring.pred.PORT);
                 write(tcp_s_fd, buf, strlen(buf));
                 //close all sockets
-                close_all_sockets(listenfd, udpfd, connfd, tcp_s_fd, tcp_c_fd);
+                close_all_sockets(listenfd, udp_c_fd, connfd, tcp_s_fd, tcp_c_fd);
                 memset(&ring.pred, 0, sizeof(node));
                 memset(&ring.suc, 0, sizeof(node));
                 printf("Leave\n");
@@ -405,25 +456,45 @@ int main(int argc, char *argv[]){
                 printf("distance\n");
                 distance(ring.me.ID, ring.pred.ID);
             }else if(*buf=='f'){
-                
+                //TODO: Check if command is good "trash"
                 sscanf(buf, "%s %s", trash, key_to_f);
                 if(key_to_f == ring.me.ID){
                     printf("It's me you dumbass\n");
                     continue;
-                }else if(distance(ring.me.ID,key_to_f)>distance(ring.suc.ID, key_to_f)){//passar para o suc
+                }else if(/*not mine!*/!check_if_key_is_mine(ring.me.ID, ring.suc.ID, key_to_f) ){//passar para o suc
                     //TODO: check distance between chord if i have one
-                    //* se não tiver chord delego a procura ao suc 
-                    memset(buf, 0, sizeof(buf));
-                    n_sec = 3*atoi(ring.me.ID);
-                    //sprintf(n_sec_str, "%d", n_sec);
-                    sprintf(buf, "%s %s %d %s %s %s\n", "FND", key_to_f, n_sec, ring.me.ID, ring.me.IP, ring.me.PORT);
-                    printf("BUF = %s\n", buf);
-                    write(tcp_s_fd, buf, strlen(buf));
+                    if(/*TENHO CHORD*/udp_c_fd!=0){
+                        if(/*not mine*/!check_if_key_is_mine(ring.suc.ID, ring.chord.ID, key_to_f)){
+                            memset(buf, 0, sizeof(buf));
+                            n_seq = get_sequence(store_finds, 0, atoi(key_to_f), (char*)NULL,(int)NULL);
+                            sprintf(buf, "%s %s %d %s %s %s\n", "FND", key_to_f, n_seq, ring.me.ID, ring.me.IP, ring.me.PORT);
+                            printf("BUF = %s\n", buf);
+                            send(udp_c_fd, buf, strlen(buf),0); 
+                        }
+                    }else{
+                        //* se não tiver chord delego a procura ao suc 
+                        memset(buf, 0, sizeof(buf));
+                        n_seq = get_sequence(store_finds, 0, atoi(key_to_f), (char*)NULL,(int)NULL);
+                        sprintf(buf, "%s %s %d %s %s %s\n", "FND", key_to_f, n_seq, ring.me.ID, ring.me.IP, ring.me.PORT);
+                        printf("BUF = %s\n", buf);
+                        write(tcp_s_fd, buf, strlen(buf));  
+                    }
+                    
                 }else{ // o objeto é meu
                     printf("O objeto é meu\n");
                 }
                 
                 
+            }
+            else if (*buf=='c')
+            {
+                sscanf(buf, "%s %s %s %s", command.opt, command.ID, command.IP, command.PORT);
+                create_udp_client(&udp_c_fd, command.IP, command.PORT, &udp_c_addr);
+                strcpy(ring.chord.ID,   command.ID);
+                strcpy(ring.chord.IP,   command.IP);
+                strcpy(ring.chord.PORT, command.PORT);
+                //send(udp_c_fd, "hello\n", 7, 0);
+                //sendto(udpfd,buf, strlen(buf),0, (struct sockaddr*)&mynodeaddr_udp_s,sizeof(mynodeaddr_udp_s));    
             }
             else continue;
             
@@ -439,17 +510,41 @@ int main(int argc, char *argv[]){
         }
                     
         // if udp socket is readable receive the message.
-		else if (udpfd && (FD_ISSET(udpfd, &rset_cpy))) {
-
-			len = sizeof(clinodeaddr);
+		else if (udp_c_fd && (FD_ISSET(udp_c_fd, &rset_cpy))) {
+            //* recebe o EPRED
 			
-			n = recvfrom(udpfd, buf, sizeof(buf), 0,
-						(struct sockaddr*)&clinodeaddr, &len);
-			printf("Message from UDP client (shortcut): %s\n",buf);
-           
-			sendto(udpfd, "hello!", sizeof(buf), 0,
-				(struct sockaddr*)&clinodeaddr, sizeof(clinodeaddr));
 		}
+
+        else if(udp_s_fd && (FD_ISSET(udp_s_fd, &rset_cpy))){
+
+            recvfrom(udp_s_fd, buf, sizeof(buf),0, (struct sockaddr*)&udp_s_addr,&len);
+            if(*buf=='F'){
+                sscanf(buf, "%s %s %s %s %s %s", command.opt, command.searched_key, command.n_seq, command.ID, command.IP, command.PORT);
+                printf("recebi um find por UDP\n");
+                //* ver se eu ou o meu suc é mais perto
+                if(/*NOT MINE*/!check_if_key_is_mine(ring.me.ID, ring.suc.ID, command.searched_key)){
+                    //*avaliar suc e chord
+                    if(/*I have a chord*/ring.chord.ID!=0){
+                        if(/*chord is closer to key*/!check_if_key_is_mine(ring.suc.ID, ring.chord.ID, command.searched_key)){
+                            //TODO: mandar por chord
+                            send(udp_c_fd, buf, strlen(buf),0);
+                            recv(udp_s_fd,buf, 4,0);
+                        }
+                    }else{
+                        //* send to suc
+                        write(tcp_s_fd, buf, strlen(buf)); 
+                    }
+                    
+                }else /*key belongs to me*/
+                memset(buf, 0, sizeof(char)*100);
+                sprintf(buf, "%s %s %s %s %s %s\n", "RSP", command.ID, command.n_seq, ring.me.ID, ring.me.IP, ring.me.PORT);
+                write(tcp_s_fd, buf, strlen(buf));
+                //* ver se a minha chord se tiver é mais perto do que o meu suc 
+                
+            }
+            //sendto(udp_c_fd, "ACK", 4,0,(struct sockaddr*)&udp_c_addr, &len);
+            printf("UDP_S_FD = %s", buf);
+        }
 
         else if(connfd && (FD_ISSET(connfd, &rset_cpy))){
             FD_CLR(connfd, &rset);           
@@ -464,9 +559,7 @@ int main(int argc, char *argv[]){
                 if(buf[0]=='S'){
                     printf("Recebi um SELF\n");
                     string_to_command(buf, &command);
-                    // condition1 = (((atoi(command.ID)>atoi(ring.me.ID))&&(atoi(command.ID)<atoi(ring.suc.ID))) || (alone_in_a_ring==0));  //se estiver sozinho e o ID do nó entrante for maior, ENTRA
-                    //bool condition2 = !ring_created;
-                    //if(condition1 || condition2){
+                   
                         if(ring_created){ // se o anel estiver criado
                             if(alone_in_a_ring != 0){ //verifica se não está sozinho no anel
                                 sprintf(buf, "%s %s %s %s\n", "PRED",command.ID,command.IP,command.PORT);         
@@ -522,8 +615,9 @@ int main(int argc, char *argv[]){
                 }
                 printf("\nEntrei tcp_c_fd\n");
                 //* vou receber o meu novo pred nesta mensagem
-                string_to_command(buf, &command);
+                
                 if(*buf=='P'){
+                    string_to_command(buf, &command);
                     printf("Recebi um PRED\n");
 
                     if(ring_created){
@@ -541,9 +635,41 @@ int main(int argc, char *argv[]){
                             write(tcp_c_fd, buf, strlen(buf));
                     } 
                 }
-                if(buf[0]=='F'){
-                    //fflush(stdin);
-                    printf("RECEBI UM FIND\n");
+                else if(buf[0]=='F'){
+                    /*"FND 12 88 24 24.IP 24.PORT\n"*/
+                    printf("RECEBI UM FND\n");
+                    sscanf(buf, "%s %s %s %s %s %s", command.opt, command.searched_key, command.n_seq, command.ID, command.IP, command.PORT);
+                    if(/*MINE*/check_if_key_is_mine(ring.me.ID, ring.suc.ID, command.searched_key)){
+                        /*RSP 24 88 10 10.IP 10.port\n*/
+                        memset(buf, 0, sizeof(char)*100);
+                        sprintf(buf, "%s %s %s %s %s %s\n", "RSP", command.ID, command.n_seq, ring.me.ID, ring.me.IP, ring.me.PORT);
+                        write(tcp_s_fd, buf, strlen(buf));
+                    }else if(/*check if I have chord*/udp_c_fd!=0){
+                        if(/*distance to suc is lower than chord*/!check_if_key_is_mine(ring.suc.ID, ring.chord.ID,command.searched_key)){
+                            send(udp_c_fd, buf, strlen(buf),0);
+                            recv(udp_s_fd,buf, 4,0);
+                        }
+                    }else write(tcp_s_fd, buf, strlen(buf)); // send to suc
+                    
+                }
+                else if (buf[0]=='R'){
+                    /*avaliar se n seq é minha
+                    se for entao print do "chave adsasfddaf"
+                    senão passar para o suc*/
+                    printf("RECEBI UM RSP\n");
+                    sscanf(buf, "%s %s %s %s %s %s", command.opt, command.searched_key, command.n_seq, command.ID, command.IP, command.PORT);
+                    if(atoi(command.searched_key)==atoi(ring.me.ID)){
+                        if(/*EFND*/store_finds[atoi(command.n_seq)].mode){
+                            
+                        }else{ /*Find*/
+                            
+                            printf("Chave %d: nó %s (%s:%s)\n",store_finds[atoi(command.n_seq)].key_to_find, command.ID, command.IP, command.PORT);
+                            store_finds[atoi(command.n_seq)].key_to_find=-1;
+                        }
+                    }else{
+                        write(tcp_s_fd, buf, strlen(buf));
+                    }
+
                 }
             }else{
                 close(tcp_c_fd);
