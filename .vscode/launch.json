@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/ring",
-            "args": ["20","127.0.0.1","5083"],
+            "args": ["20","127.0.0.1","508"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
