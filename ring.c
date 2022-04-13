@@ -286,7 +286,7 @@ void create_udp_client(int *udpfd_c,char *IP, char* PORT, struct sockaddr_in *ud
 //returns true if mine, false if not 
 bool check_if_key_is_mine(char *my_ID, char *suc_ID, char *key_to_f){
     
-    if(distance(my_ID,key_to_f)>distance(suc_ID, key_to_f)){
+    if(distance(my_ID,key_to_f)>=distance(suc_ID, key_to_f)){
         return false;
     }else return true; 
 }
@@ -460,6 +460,8 @@ int main(int argc, char *argv[]){
                                 printf("Missing ACK when sending FIND to chord(1)\n");
                                 close(udp_c_fd);
                                 udp_c_fd=0;
+                                strcat(buf,"\n\0");
+                                write(tcp_s_fd,buf,strlen(buf));
                             }
                         }
                     }else{
@@ -491,10 +493,13 @@ int main(int argc, char *argv[]){
                 sscanf(buf, "%s %s %s %s", command.opt, command.ID, command.IP, command.PORT);
                 create_udp_client(&udp_c_fd, command.IP, command.PORT, &udp_c_addr);
                 sprintf(buf, "%s %s", "EFND", ring.me.ID);
+                printf("BUFF B:%s\n", buf);
                 send(udp_c_fd, buf, strlen(buf),0);
                 recv(udp_c_fd, buf, 4,0);
                 if(strcmp(buf,"ACK")!=0){
                     printf("Missing ACK in bentry, retry\n");
+                    strcat(buf,"\n\0");
+                    write(tcp_s_fd,buf,strlen(buf));
                     close(udp_c_fd);
                     udp_c_fd=0;
                 }
@@ -552,6 +557,8 @@ int main(int argc, char *argv[]){
                             recv(udp_c_fd, buf, 4,0);
                             if(strcmp(buf,"ACK")!=0){
                                 printf("Missing ACK when sending FIND to chord(udp_s_fd FIND)\n");
+                                strcat(buf,"\n\0");
+                                write(tcp_s_fd,buf,strlen(buf));
                                 close(udp_c_fd);
                                 udp_c_fd=0;
                             }
@@ -589,6 +596,8 @@ int main(int argc, char *argv[]){
                             recv(udp_c_fd, buf, 4,0);
                             if(strcmp(buf,"ACK")!=0){
                                 printf("Missing ACK when sending FIND to chord(udp_s_fd EFIND)\n");
+                                strcat(buf,"\n\0");
+                                write(tcp_s_fd,buf,strlen(buf));
                                 close(udp_c_fd);
                                 udp_c_fd=0;
                             }
@@ -606,7 +615,7 @@ int main(int argc, char *argv[]){
                     }
                     
                 }else{ // o objeto é meu
-                    sprintf(buf, "%s %s %s %s", "EPRED", command.ID, command.IP, command.PORT);
+                    sprintf(buf, "%s %s %s %s", "EPRED", ring.me.ID, ring.me.IP, ring.me.PORT);
                     //* RSP 24 88 10 10.IP 10.port\n
                     //* inet_pton( AF_INET ,clients_data[check_for_new_client].addr, &client_addr.sin_addr );
                     inet_pton(AF_INET, store_finds[atoi(command.n_seq)].addr, &udp_s_addr.sin_addr);
@@ -619,6 +628,8 @@ int main(int argc, char *argv[]){
                         recvfrom(udp_s_fd, buf, 4,0,(struct sockaddr * ) &udp_s_addr, &len);
                         if(strcmp(buf,"ACK")!=0){
                             printf("Missing ACK when sending FIND to chord(2)\n");
+                            strcat(buf,"\n\0");
+                            write(tcp_s_fd,buf,strlen(buf));
                             close(udp_c_fd);
                             udp_c_fd=0;
                         }
@@ -632,7 +643,7 @@ int main(int argc, char *argv[]){
 
         else if(connfd && (FD_ISSET(connfd, &rset_cpy))){
             FD_CLR(connfd, &rset);           
-            if((n=read(connfd,buf, sizeof(char)*100))!=0){
+            if((n=read(connfd,buf, sizeof(char)*100))!=0    ){
                 printf("CONNFD\n");
                 if(n==-1){
                     printf("Error in read\n");
@@ -659,6 +670,7 @@ int main(int argc, char *argv[]){
                                 //manda o self ao gajo que se conectou
                                 create_tcp_client(&tcp_c_fd, command.IP, command.PORT, &pred_tcp_s);
                                 sprintf(buf, "%s %s %s %s\n", "SELF",ring.me.ID,ring.me.IP,ring.me.PORT);
+                                printf("BUFF PENTRY: %s\n", buf);
                                 write(tcp_c_fd, buf, strlen(buf));
                                 
                             }
@@ -734,6 +746,8 @@ int main(int argc, char *argv[]){
                             recv(udp_c_fd, buf, 4,0);
                             if(strcmp(buf,"ACK")!=0){
                                 printf("Missing ACK when sending FIND to chord(4)\n");
+                                strcat(buf,"\n\0");
+                                write(tcp_s_fd,buf,strlen(buf));
                                 close(udp_c_fd);
                                 udp_c_fd=0;
                             }
@@ -764,6 +778,8 @@ int main(int argc, char *argv[]){
                                 recvfrom(udp_s_fd, buf, 4,0,(struct sockaddr * ) &udp_s_addr, &len);
                                 if(strcmp(buf,"ACK")!=0){
                                     printf("Missing ACK when sending FIND to chord(3)\n");
+                                    strcat(buf,"\n\0");
+                                     write(tcp_s_fd,buf,strlen(buf));
                                     close(udp_s_fd);
                                     udp_s_fd=0;
                                 }
