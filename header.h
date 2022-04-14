@@ -1,4 +1,5 @@
-/*--header.h--------------------------------------------------------------------------------------*
+/*------------------Projeto- Base-de-Dados em Anel com Cordas-------------------------------------*
+*  header.h                                                                                       *
 *                                                                                                 *
 *  Created by Hugo Lima e Maria Rodrigues on 14/04/22.                                            *
 *  Copyright © 2022 Hugo Lima e Maria Rodrigues. All rights reserved.                             *
@@ -22,14 +23,13 @@
 #include <stdbool.h>
 #define MAX_CHAR 100
 
-#define SERVERPORT 8989
-#define BUFSIZE 4096
-#define SOCKETERROR (-1)
-#define SERVER_BACKLOG 100
 
-typedef struct sockaddr_in SA_IN;
+#define SOCKETERROR (-1)
+
+
+typedef struct sockaddr_in SA_IN; /*Estrutura que lida com os endereços de rede. Usada com endereços IPV4*/
 typedef struct sockaddr SA; 
-//#define PORT "58001"
+
 
 typedef struct{
     int udp_s;
@@ -55,7 +55,7 @@ typedef struct{
     char PORT[10];
 }node; 
 
-//estrutura de estruturas com nodes
+/*Estrutura do tipo node que guarda o ID, IP e porta do próprio nó, seu sucessor e predecessor*/
 
 typedef struct{
     node pred;
@@ -67,10 +67,8 @@ typedef struct{
 typedef struct
 {
    int key_to_find; 
-   char addr[INET_ADDRSTRLEN]; //save the address of the guy that asks for the EFND
+   char addr[INET_ADDRSTRLEN]; /* Guardar o endereço do nó que pede EFND*/
    int port;  
-   bool mode; // if EFND 1, FIND 0 
+   bool mode; // Se há EFND mode= 1, se há FIND mode= 0 
 }find_s;
 
-
-void new(ring_s *ring);

@@ -1,14 +1,18 @@
-/*--ring.c----------------------------------------------------------------------------------------*
+/*------------------Projeto- Base-de-Dados em Anel com Cordas-------------------------------------*
+*  ring.c                                                                                         *
 *                                                                                                 *
 *  Created by Hugo Lima e Maria Rodrigues on 14/04/22.                                            *
 *  Copyright © 2022 Hugo Lima e Maria Rodrigues. All rights reserved.                             *
 *                                                                                                 *
+*  Warning: For chord use the command c                                                           *
+            For echord use the command e                                                          *
+            For exit use the command x                                                            *                                    *
 *-------------------------------------------------------------------------------------------------*/
 
 #include "header.h"
 
 /*----------------------------------------------------------------------------------------------------
-Verificação da validade do endereço de IP recebido quando o programa é invocado
+ Verificação da validade do endereço IP recebido quando o programa é invocado
 ------------------------------------------------------------------------------------------------------*/
 bool verify_ip(char* ip_string){ 
 
@@ -32,6 +36,25 @@ bool verify_ip(char* ip_string){
     free(string_to_free);
     return 0;
     
+}
+
+/*----------------------------------------------------------------------------------------------------
+Função cria um anel com apenas um nó com a informação da invocação do programa
+------------------------------------------------------------------------------------------------------*/
+
+void new(ring_s *ring) { 
+   
+    printf("Executa a função new()\n");
+    strcpy(ring->pred.ID,   ring->me.ID);
+    strcpy(ring->pred.PORT, ring->me.PORT);
+    strcpy(ring->pred.IP,   ring->me.IP);
+    printf("ID %s\n",   ring->me.ID);
+    printf("IP %s\n",   ring->me.IP);
+    printf("PORT %s\n", ring->me.PORT);
+
+    strcpy(ring->suc.ID,ring->me.ID);
+    strcpy(ring->suc.PORT,ring->me.PORT);
+    strcpy(ring->suc.IP,ring->me.IP);
 }
 
 /*----------------------------------------------------------------------------------------------------
@@ -104,7 +127,7 @@ void show(ring_s *ring, int alone, bool ring_created){
         printf("|%5s\t|%9s\t|%13s\t|%10s\n","SUC",ring->suc.ID, ring->suc.IP, ring->suc.PORT);
     }
     
-    if(atoi(ring->chord.ID)!=0){
+    if(atoi(ring->chord.PORT)!=0){
         printf("|%5s\t|%9s\t|%13s\t|%10s\n","CHORD",ring->chord.ID, ring->chord.IP, ring->chord.PORT);
     }
     
@@ -128,7 +151,8 @@ void show(ring_s *ring, int alone, bool ring_created){
         printf("leave  - exit of the node out of the ring\n");
         printf("exit   - close application \n");
         printf("For chord use the command c\n");
-        printf("For echord use the command ec\n");
+        printf("For echord use the command e\n");
+         printf("For exit use the command x\n");
         printf("Enter a command or press any key followed by ENTER to continue the program.\n");
         print++;
     }
@@ -229,7 +253,7 @@ void user_input(char *buf){
 /*---------------------------------------------------------------------------------------------------------------------
 Criação do cliente TCP
 ---------------------------------------------------------------------------------------------------------------------*/
-void create_tcp_client(int *tcp_c_fd, char* IP, char* PORT, struct sockaddr_in *pred_tcp_s ){ 
+void create_tcp_client(int *tcp_c_fd, char* PORT, struct sockaddr_in *pred_tcp_s ){ 
     
     /*Criação e verificação da socket*/
     if ((*tcp_c_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -237,7 +261,7 @@ void create_tcp_client(int *tcp_c_fd, char* IP, char* PORT, struct sockaddr_in *
 		exit(0);
 	}
 
-    /* Filling server information*/
+    
 	memset(pred_tcp_s, 0, sizeof(*pred_tcp_s));
     pred_tcp_s->sin_family = AF_INET;
 	pred_tcp_s->sin_port = htons(atoi(PORT));
@@ -283,15 +307,15 @@ Criação do servidor UDP
 void create_udp_server(int *udpfd_s, char* PORT, struct sockaddr_in *udp_s){
     struct timeval tv;
     tv.tv_sec=0;
-    tv.tv_usec=5000;
+    tv.tv_usec=10000;
     if((*udpfd_s = socket(AF_INET, SOCK_DGRAM, 0))==-1){
         printf("Error: creating UDP server\n");
         exit(0);
     }
-    if (setsockopt(*udpfd_s, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0){
+    if (setsockopt(*udpfd_s, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0){ /*Para evitar o erro no bind*/
         perror("setsockopt(SO_REUSEADDR) failed");
     }
-    setsockopt(*udpfd_s, SOL_SOCKET,SO_RCVTIMEO, (const char*)&tv, sizeof(tv));
+    setsockopt(*udpfd_s, SOL_SOCKET,SO_RCVTIMEO, (const char*)&tv, sizeof(tv)); /*Timer para o UDP */
     memset(udp_s, 0 ,sizeof(*udp_s));
     udp_s->sin_family = AF_INET;
 	udp_s->sin_addr.s_addr = htonl(INADDR_ANY);
@@ -377,7 +401,7 @@ int main(int argc, char *argv[]){
     if(valid_arguments(argc - 1, argv + 1, &ring)){
          /* Se a porta ou IP não forem válidos o programa termina*/
         printf("Usage: ./ring i i.IP i.PORT\n");
-        exit(-1);
+        exit(0);
     } 
 
     /*Criação das sockets para listening TCP e os servidores UDP*/
@@ -456,7 +480,7 @@ int main(int argc, char *argv[]){
                 }
 
                 /*Criação da socket do client (que irá enviar o "PRED")*/
-                create_tcp_client(&tcp_c_fd, command.IP, command.PORT, &pred_tcp_s);
+                create_tcp_client(&tcp_c_fd, command.PORT, &pred_tcp_s);
                 strcpy(ring.pred.ID,command.ID); /*Preenchimento das informações do predecessor do novo nó com a informação dada no input do pentry*/
                 strcpy(ring.pred.IP, command.IP);
                 strcpy(ring.pred.PORT, command.PORT);
@@ -479,7 +503,7 @@ int main(int argc, char *argv[]){
                 memset(&ring.suc, 0, sizeof(node));
                 printf("Leave\n");
                 
-            }else if(*buf=='f'){
+            }else if(buf[0]=='f'){
 
                 //TODO: Check if command is good "trash"
                 sscanf(buf, "%s %s", trash, key_to_f);
@@ -523,7 +547,7 @@ int main(int argc, char *argv[]){
                 }
                 
                 
-            }else if (*buf=='c') /*chord i.ID i.IP i.Porta*/
+            }else if (buf[0]=='c') /*chord i.ID i.IP i.Porta*/
             {
                 /* Criação do atalho para o nó i por UDP */
                 sscanf(buf, "%s %s %s %s", command.opt, command.ID, command.IP, command.PORT);
@@ -532,7 +556,7 @@ int main(int argc, char *argv[]){
                 strcpy(ring.chord.IP,   command.IP);
                 strcpy(ring.chord.PORT, command.PORT);
                    
-            }else if(*buf=='b'){ /* bentry j j.IP j.PORT 
+            }else if(buf[0]=='b'){ /* bentry j j.IP j.PORT 
                                     sendo j o nó que queremos que entre no anel
                                     cuja posição no mesmo não é conhecida */
                 
@@ -547,10 +571,23 @@ int main(int argc, char *argv[]){
                     strcat(buf,"\n\0");
                     write(tcp_s_fd,buf,strlen(buf));
                     printf("BUFF MISSING: %s\n", buf);
-                    close(udp_c_fd);
+                    close(udp_c_fd); /*Admitimos que este ACK nunca irá chegar */
                     udp_c_fd=0;
                 }
 
+            }
+            else if (buf[0]=='x') /* exit */
+            {
+                exit(0);
+            }
+            else if (buf[0]=='e') /* echord*/
+            {
+                if (udp_c_fd!=0) /*Eliminação do atalho para um nó caso o mesmo exista*/
+                {
+                    memset(&ring.chord,0,sizeof(node));
+                    close(udp_c_fd);
+                    udp_c_fd=0;
+                }
             }
             else continue;
             
@@ -578,7 +615,7 @@ int main(int argc, char *argv[]){
             udp_c_fd=0;
             //* EPRED pred pred.IP pred.port
             sscanf(buf, "%s %s %s %s", command.opt, command.ID, command.IP, command.PORT);
-            create_tcp_client(&tcp_c_fd, command.IP, command.PORT, &pred_tcp_s);
+            create_tcp_client(&tcp_c_fd, command.PORT, &pred_tcp_s);
             strcpy(ring.pred.ID,command.ID);
             strcpy(ring.pred.IP, command.IP);
             strcpy(ring.pred.PORT, command.PORT);
@@ -593,11 +630,11 @@ int main(int argc, char *argv[]){
 
             recvfrom(udp_s_fd, buf, sizeof(buf),0, (struct sockaddr*)&udp_s_addr,&len);
             sendto(udp_s_fd, "ACK", 4,0, (struct sockaddr*)&udp_s_addr,len);
-            if(*buf=='F'){
+            if(buf[0]=='F'){
                 /*Lógica semelhante ao envio destas mensagens TCP 
                 Mas estas são enviadas por UDP*/
                 sscanf(buf, "%s %s %s %s %s %s", command.opt, command.searched_key, command.n_seq, command.ID, command.IP, command.PORT);
-                printf("recebi um find por UDP\n");
+                printf("Recebi um find por UDP\n");
                 if(/*MINE*/check_if_key_is_mine(ring.me.ID, ring.suc.ID, command.searched_key)){
                     
                 memset(buf, 0, sizeof(char)*100);
@@ -620,11 +657,11 @@ int main(int argc, char *argv[]){
                 
                
                 
-            }else if(*buf=='E'){
+            }else if(buf[0]=='E'){
                 printf("External Find!\n");
                 sscanf(buf, "%s %s", command.opt, command.searched_key);
                 if(command.searched_key == ring.me.ID){
-                    printf("It's me you dumbass\n");
+                    printf("It's me I'm looking for\n");
                     continue;
                 }else if(/*not mine!*/!check_if_key_is_mine(ring.me.ID, ring.suc.ID, command.searched_key) ){
                     
@@ -677,7 +714,7 @@ int main(int argc, char *argv[]){
                 if(atoi(command.searched_key)==atoi(ring.me.ID)){
                     if(/*EFND*/store_finds[atoi(command.n_seq)].mode){
                         //printf("RECEBI UM EFND\n");
-                        //* mandar para o nó que mandou o ENFD
+                        //* Mandar para o nó que mandou o ENFD
                         //* EPRED pred pred.IP pred.PORT
                         sprintf(buf, "%s %s %s %s", "EPRED", command.ID, command.IP, command.PORT);               
                         inet_pton(AF_INET, store_finds[atoi(command.n_seq)].addr, &udp_s_addr.sin_addr);
@@ -729,36 +766,46 @@ int main(int argc, char *argv[]){
                     string_to_command(buf, &command);
                    
                         if(ring_created){ /*Anel está criado*/
-                            if(alone_in_a_ring != 0){ /* Verifica se nó  não está sozinho no anel*/
+                            if(alone_in_a_ring != 0){  /*Receção do SELF por parte do nó i que tem um sucessor u diferente do próprio */
+                            /* Se o nó não está sozinho no anel é enviado um PRED ao sucessor u do nó i */
                                 sprintf(buf, "%s %s %s %s\n", "PRED",command.ID,command.IP,command.PORT);         
                                 write(tcp_s_fd, buf, strlen(buf));  
-                                close(tcp_s_fd);
+                                close(tcp_s_fd); /*Fecho da ligação entre i e u (s(i))*/
                             
-                            }else{ /* Nó sozinho no anel */
+                            }else{ 
+                                /* Caso o nó esteja sozinho no anel*/
+                               /* O pred e suc  do nó é o mesmo e não é notificado o próprio nó*/
+                              /* O nó j atualiza o seu predecessor para i  */
                                 
                                 strcpy(ring.pred.ID,command.ID);
                                 strcpy(ring.pred.IP, command.IP);
                                 strcpy(ring.pred.PORT, command.PORT);
-                                /*Envio do "SELF" do nó que se conectou ao seu predecessor*/
-                                create_tcp_client(&tcp_c_fd, command.IP, command.PORT, &pred_tcp_s);
+                                /*Pentry:Criação de um novo cliente tcp para enviar o "SELF" do nó i para o nó j*/  
+                                /*ou Leave: Criação de um novo cliente tcp para enviar o "SELF" do nó s(j) para p(j)*/
+        
+                                create_tcp_client(&tcp_c_fd,command.PORT, &pred_tcp_s);
                                 sprintf(buf, "%s %s %s %s\n", "SELF",ring.me.ID,ring.me.IP,ring.me.PORT);
                                 printf("BUFF PENTRY: %s\n", buf);
                                 write(tcp_c_fd, buf, strlen(buf));
                                 
                             }
-                        }else{ /*O anel não está criado*/
+                        }else{ /* Se o anel não está criado este é criado*/
                             ring_created = true;
                         
                         }
+                         /*Cada um dos nós atualiza o seu sucessor*/
                         strcpy(ring.suc.ID,command.ID);
                         strcpy(ring.suc.IP, command.IP);
                         strcpy(ring.suc.PORT, command.PORT);
                   
-                tcp_s_fd = connfd;
-                connfd=0;
+                tcp_s_fd = connfd; /*Impede a desconecção com o nó ao que estava ligado para saber informação do antigo
+                    , tcp_s_fd liga ao nó novo e connfd liga ao anterior*/
+                connfd=0; /*Interrompo a ligação com o nó a que estava ligado para se ligar ao novo nó */
                 }
                      
             }else{
+                /*Caso não haja mais bytes para ler é fechada a socket connfd*/
+
                 close(connfd);
                 connfd=0;
                 printf("EOF\n");
@@ -772,26 +819,29 @@ int main(int argc, char *argv[]){
                 if(n==-1){
                     printf("Error in read\n");
                 }
-                printf("\nEntrei tcp_c_fd\n");
+
                 //*Receção do novo pred nesta mensagem
                 
-                if(*buf=='P'){
+                if(buf[0]=='P'){ /*Receção do "PRED" */
                     string_to_command(buf, &command);
                     printf("Recebi um PRED\n");
 
                     if(ring_created){
                         
-                            //* Nó atualiza o seu predecessor
+                            /*u (s(i)) atualiza o seu pred para j*/
                             strcpy(ring.pred.ID,command.ID);
                             strcpy(ring.pred.IP, command.IP);
                             strcpy(ring.pred.PORT, command.PORT);
-                            close(tcp_c_fd);
+                            close(tcp_c_fd); /*u fecha anel com j */
                             tcp_c_fd=0;
                             int temp_fd; 
-                            create_tcp_client(&temp_fd, command.IP, command.PORT, &pred_tcp_s);
+                            /*Criação de um novo cliente tcp para envio do "SELF"*/ 
+                            create_tcp_client(&temp_fd,command.PORT, &pred_tcp_s);
                             tcp_c_fd=temp_fd;
                             sprintf(buf, "%s %s %s %s\n", "SELF",ring.me.ID,ring.me.IP,ring.me.PORT);
                             write(tcp_c_fd, buf, strlen(buf));
+                            /*Em caso de leave:
+                            Após este self as sockets são fechadas saindo o nó j do anel pois leave=true*/
                     } 
                 }
                 else if(buf[0]=='F'){
@@ -826,11 +876,10 @@ int main(int argc, char *argv[]){
                             /*Rotina bentry*/
                             /* É enviado um EPRED pred pred.IP pred.PORT para o nó que enviou EFND por UDP */
                             sprintf(buf, "%s %s %s %s", "EPRED", command.ID, command.IP, command.PORT);
-
-
-
+                            
                             inet_pton(AF_INET, store_finds[atoi(command.n_seq)].addr, &udp_s_addr.sin_addr);
                             store_finds[atoi(command.n_seq)].key_to_find=-1;
+                            /*Passagem do Porto de string para byte network para indicar à máquina o endereço para que irá enviar as infr*/
                             udp_s_addr.sin_port = htons(store_finds[atoi(command.n_seq)].port);
                             if(sendto(udp_s_fd,buf, strlen(buf),0, (const struct sockaddr * ) &udp_s_addr, len)!=-1){
                                 recvfrom(udp_s_fd, buf, 4,0,(struct sockaddr * ) &udp_s_addr, &len);
@@ -840,7 +889,7 @@ int main(int argc, char *argv[]){
                                 }
                             }else printf("Error on sendto\n");
                             
-                        }else{ /*Menssagem final do Find*/
+                        }else{ /*Mensagem final do Find*/
                             
                             printf("Chave %d: nó %s (%s:%s)\n",store_finds[atoi(command.n_seq)].key_to_find, command.ID, command.IP, command.PORT);
                             store_finds[atoi(command.n_seq)].key_to_find=-1;
