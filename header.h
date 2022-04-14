@@ -1,3 +1,10 @@
+/*--header.h--------------------------------------------------------------------------------------*
+*                                                                                                 *
+*  Created by Hugo Lima e Maria Rodrigues on 14/04/22.                                            *
+*  Copyright © 2022 Hugo Lima e Maria Rodrigues. All rights reserved.                             *
+*                                                                                                 *
+*-------------------------------------------------------------------------------------------------*/
+
 #define _CRT_SECURE_NO_DEPRECATE
 #define _OPEN_SYS_ITOA_EXT
 #include <stdio.h>
