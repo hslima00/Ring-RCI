@@ -97,11 +97,14 @@ void show(ring_s *ring, int alone, bool ring_created){
     printf("|%6s\t|%10s\t|%10s\t|%10s\n","NÓ", "CHAVE", "IP", "PORTA");
     printf("-----------------------------------------------------\n");
     printf("|%5s\t|%9s\t|%13s\t|%10s\n","ME",ring->me.ID, ring->me.IP, ring->me.PORT);
-    
-    if(atoi(ring->pred.ID)!=0){
+    if(ring_created){
         printf("|%5s\t|%9s\t|%13s\t|%10s\n","PRED",ring->pred.ID, ring->pred.IP, ring->pred.PORT);
         printf("|%5s\t|%9s\t|%13s\t|%10s\n","SUC",ring->suc.ID, ring->suc.IP, ring->suc.PORT);
     }
+    /*if(atoi(ring->pred.ID)!=0){
+        printf("|%5s\t|%9s\t|%13s\t|%10s\n","PRED",ring->pred.ID, ring->pred.IP, ring->pred.PORT);
+        printf("|%5s\t|%9s\t|%13s\t|%10s\n","SUC",ring->suc.ID, ring->suc.IP, ring->suc.PORT);
+    }*/
     if(atoi(ring->chord.ID)!=0){
         printf("|%5s\t|%9s\t|%13s\t|%10s\n","CHORD",ring->chord.ID, ring->chord.IP, ring->chord.PORT);
     }
@@ -645,7 +648,7 @@ int main(int argc, char *argv[]){
 
             }
             
-            printf("UDP_S_FD = %s", buf);
+            
         }
 
         else if(connfd && (FD_ISSET(connfd, &rset_cpy))){
