@@ -7,9 +7,9 @@
       "request": "launch",
       "program": "${workspaceFolder}/ring",
       "args": [
-        "14",
+        "22",
         "127.0.0.1",
-        "58006"
+        "58004"
       ],
       "stopAtEntry": false,
       "cwd": "${fileDirname}",

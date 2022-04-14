@@ -500,6 +500,7 @@ int main(int argc, char *argv[]){
                     printf("Missing ACK in bentry, retry\n");
                     strcat(buf,"\n\0");
                     write(tcp_s_fd,buf,strlen(buf));
+                    printf("BUFF MISSING: %s\n", buf);
                     close(udp_c_fd);
                     udp_c_fd=0;
                 }
@@ -522,10 +523,13 @@ int main(int argc, char *argv[]){
 		else if(udp_c_fd && (FD_ISSET(udp_c_fd, &rset_cpy))){
             //* recebe o EPRED
             printf("RECEBI O EPRED\n");
+            close(udp_c_fd);
+            udp_c_fd=0;
             FD_CLR(udp_c_fd, &rset);
             memset(buf,0,sizeof(buf));
-            recv(udp_c_fd,buf,sizeof(buf) ,0);
-            send(udp_c_fd, "ACK", 4, 0);
+            
+            recvfrom(udp_c_fd,buf,sizeof(buf) ,0,(struct sockaddr * ) &udp_s_addr, &len);
+            sendto(udp_c_fd, "ACK", 4, 0,(struct sockaddr*)&udp_c_addr,len);
             //* EPRED pred pred.IP pred.port
             sscanf(buf, "%s %s %s %s", command.opt, command.ID, command.IP, command.PORT);
             create_tcp_client(&tcp_c_fd, command.IP, command.PORT, &pred_tcp_s);
@@ -602,6 +606,17 @@ int main(int argc, char *argv[]){
                                 udp_c_fd=0;
                             }
                         }
+                        else{
+
+                                memset(buf, 0, sizeof(buf));
+                                n_seq = get_sequence(store_finds,atoi(command.searched_key));
+                                store_finds[n_seq].mode = 1; //* dizer que é um EFND que está nesta posição da estrutura
+                                inet_ntop(AF_INET, &udp_s_addr.sin_addr, store_finds[n_seq].addr, INET_ADDRSTRLEN);
+                                store_finds[n_seq].port=ntohs(udp_s_addr.sin_port);
+                                sprintf(buf, "%s %s %d %s %s %s\n", "FND", command.searched_key, n_seq, ring.me.ID, ring.me.IP, ring.me.PORT);
+                                printf("BUF = %s\n", buf);
+                                write(tcp_s_fd, buf, strlen(buf)); 
+                        }
                     }else{
                         //* se não tiver chord delego a procura ao suc 
                         memset(buf, 0, sizeof(buf));
@@ -620,12 +635,12 @@ int main(int argc, char *argv[]){
                     //* inet_pton( AF_INET ,clients_data[check_for_new_client].addr, &client_addr.sin_addr );
                     inet_pton(AF_INET, store_finds[atoi(command.n_seq)].addr, &udp_s_addr.sin_addr);
                     //htons
-                    store_finds[n_seq].port=ntohs(udp_s_addr.sin_port);
-                    udp_s_addr.sin_port = htons(store_finds[atoi(command.n_seq)].port);
+                    
                     
                     
                     if(sendto(udp_s_fd,buf, strlen(buf),0, (const struct sockaddr * ) &udp_s_addr, len)!=-1){
                         recvfrom(udp_s_fd, buf, 4,0,(struct sockaddr * ) &udp_s_addr, &len);
+
                         if(strcmp(buf,"ACK")!=0){
                             printf("Missing ACK when sending FIND to chord(2)\n");
                             strcat(buf,"\n\0");
@@ -773,7 +788,6 @@ int main(int argc, char *argv[]){
                             //htons
                             store_finds[n_seq].port=ntohs(udp_s_addr.sin_port);
                             udp_s_addr.sin_port = htons(store_finds[atoi(command.n_seq)].port);
-                            
                             if(sendto(udp_s_fd,buf, strlen(buf),0, (const struct sockaddr * ) &udp_s_addr, len)!=-1){
                                 recvfrom(udp_s_fd, buf, 4,0,(struct sockaddr * ) &udp_s_addr, &len);
                                 if(strcmp(buf,"ACK")!=0){
