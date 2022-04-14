@@ -461,8 +461,6 @@ int main(int argc, char *argv[]){
                             recv(udp_c_fd, buf, 4,0);
                             if(strcmp(buf,"ACK")!=0){
                                 printf("Missing ACK when sending FIND to chord(1)\n");
-                                close(udp_c_fd);
-                                udp_c_fd=0;
                                 strcat(buf,"\n\0");
                                 write(tcp_s_fd,buf,strlen(buf));
                             }
@@ -556,28 +554,27 @@ int main(int argc, char *argv[]){
                 sscanf(buf, "%s %s %s %s %s %s", command.opt, command.searched_key, command.n_seq, command.ID, command.IP, command.PORT);
                 printf("recebi um find por UDP\n");
                 //* ver se eu ou o meu suc é mais perto
-                if(/*NOT MINE*/!check_if_key_is_mine(ring.me.ID, ring.suc.ID, command.searched_key)){
-                    //*avaliar suc e chord
+                if(/*MINE*/check_if_key_is_mine(ring.me.ID, ring.suc.ID, command.searched_key)){
                     
-                    if((ring.chord.ID!=0)&&/*chord is closer to key*/(!check_if_key_is_mine(ring.suc.ID, ring.chord.ID, command.searched_key))){
-                            //TODO: mandar por chord
-                            send(udp_c_fd, buf, strlen(buf),0);
-                            recv(udp_c_fd, buf, 4,0);
-                            if(strcmp(buf,"ACK")!=0){
-                                printf("Missing ACK when sending FIND to chord(udp_s_fd FIND)\n");
-                                strcat(buf,"\n\0");
-                                write(tcp_s_fd,buf,strlen(buf));
-                            }
-                        
-                    }else{
-                        //* send to suc
-                        write(tcp_s_fd, buf, strlen(buf)); 
+                memset(buf, 0, sizeof(char)*100);
+                sprintf(buf, "%s %s %s %s %s %s", "RSP", command.ID, command.n_seq, ring.me.ID, ring.me.IP, ring.me.PORT);
+                }
+                //*avaliar suc e 
+                if((ring.chord.ID!=0)&&/*chord is closer to key*/(!check_if_key_is_mine(ring.suc.ID, ring.chord.ID, command.searched_key))){
+                    //TODO: mandar por chord
+                    send(udp_c_fd, buf, strlen(buf),0);
+                    recv(udp_c_fd, buf, 4,0);
+                    if(strcmp(buf,"ACK")!=0){
+                        printf("Missing ACK when sending FIND to chord(udp_s_fd FIND)\n");
+                        strcat(buf,"\n\0");
+                        write(tcp_s_fd,buf,strlen(buf));
                     }
                     
-                }else /*key belongs to me*/
-                memset(buf, 0, sizeof(char)*100);
-                sprintf(buf, "%s %s %s %s %s %s\n", "RSP", command.ID, command.n_seq, ring.me.ID, ring.me.IP, ring.me.PORT);
-                write(tcp_s_fd, buf, strlen(buf));
+                }else{
+                    //* send to suc
+                    write(tcp_s_fd, buf, strlen(buf)); 
+                }
+                
                 //* ver se a minha chord se tiver é mais perto do que o meu suc 
                 
             }else if(*buf=='E'){
@@ -646,6 +643,51 @@ int main(int argc, char *argv[]){
                     }else printf("Error on sendto\n");
                 }
 
+            }
+            else if (buf[0]=='R'){
+                /*avaliar se n seq é minha
+                se for entao print do "chave adsasfddaf"
+                senão passar para o suc*/
+                printf("RECEBI UM RSP\n");
+                sscanf(buf, "%s %s %s %s %s %s", command.opt, command.searched_key, command.n_seq, command.ID, command.IP, command.PORT);
+                if(atoi(command.searched_key)==atoi(ring.me.ID)){
+                    if(/*EFND*/store_finds[atoi(command.n_seq)].mode){
+                        //printf("RECEBI UM EFND\n");
+                        //* mandar para o nó que mandou o ENFD
+                        //* EPRED pred pred.IP pred.PORT
+                        sprintf(buf, "%s %s %s %s", "EPRED", command.ID, command.IP, command.PORT);
+                        //* RSP 24 88 10 10.IP 10.port\n
+                        //* inet_pton( AF_INET ,clients_data[check_for_new_client].addr, &client_addr.sin_addr );
+                        inet_pton(AF_INET, store_finds[atoi(command.n_seq)].addr, &udp_s_addr.sin_addr);
+                        //htons
+                        //store_finds[n_seq].port=ntohs(udp_s_addr.sin_port);
+                        store_finds[atoi(command.n_seq)].key_to_find=-1;
+                        udp_s_addr.sin_port = htons(store_finds[atoi(command.n_seq)].port);
+                        if(sendto(udp_s_fd,buf, strlen(buf),0, (const struct sockaddr * ) &udp_s_addr, len)!=-1){
+                            recvfrom(udp_s_fd, buf, 4,0,(struct sockaddr * ) &udp_s_addr, &len);
+                            if(strcmp(buf,"ACK")!=0){
+                                printf("Missing ACK when sending EPDRED to chord(3)\n");
+                                strcat(buf,"\n\0");
+                            }
+                        }else printf("Error on sendto\n");
+                        
+                    }else{ /*Find*/
+                        
+                        printf("Chave %d: nó %s (%s:%s)\n",store_finds[atoi(command.n_seq)].key_to_find, command.ID, command.IP, command.PORT);
+                        store_finds[atoi(command.n_seq)].key_to_find=-1;
+                    }
+                }else{
+                        if((udp_c_fd!=0) &&/*chord is closer to key*/(!check_if_key_is_mine(ring.suc.ID, ring.chord.ID,command.searched_key))){
+                        send(udp_c_fd, buf, strlen(buf),0);
+                        recv(udp_c_fd, buf, 4,0);
+                        if(strcmp(buf,"ACK")!=0){
+                            printf("Missing ACK when sending FIND to chord(4)\n");
+                            strcat(buf,"\n\0");
+                            write(tcp_s_fd,buf,strlen(buf));
+                        }
+                    }    
+                    else write(tcp_s_fd, buf, strlen(buf));
+                }
             }
             
             
@@ -749,18 +791,15 @@ int main(int argc, char *argv[]){
                         /*RSP 24 88 10 10.IP 10.port\n*/
                         memset(buf, 0, sizeof(char)*100);
                         sprintf(buf, "%s %s %s %s %s %s\n", "RSP", command.ID, command.n_seq, ring.me.ID, ring.me.IP, ring.me.PORT);
-                        write(tcp_s_fd, buf, strlen(buf));
-                    }else if(/*check if I have chord*/udp_c_fd!=0){
-                        if(/*chord is closer to key*/!check_if_key_is_mine(ring.suc.ID, ring.chord.ID,command.searched_key)){
-                            send(udp_c_fd, buf, strlen(buf),0);
-                            recv(udp_c_fd, buf, 4,0);
-                            if(strcmp(buf,"ACK")!=0){
-                                printf("Missing ACK when sending FIND to chord(4)\n");
-                                strcat(buf,"\n\0");
-                                write(tcp_s_fd,buf,strlen(buf));
-                                close(udp_c_fd);
-                                udp_c_fd=0;
-                            }
+                        strcpy(command.searched_key,command.ID);
+                    }
+                    if((udp_c_fd!=0)&&/*chord is closer to key*/(!check_if_key_is_mine(ring.suc.ID, ring.chord.ID,command.searched_key))){
+                        send(udp_c_fd, buf, strlen(buf),0);
+                        recv(udp_c_fd, buf, 4,0);
+                        if(strcmp(buf,"ACK")!=0){
+                            printf("Missing ACK when sending FIND to chord(4)\n");
+                            strcat(buf,"\n\0");
+                            write(tcp_s_fd,buf,strlen(buf));
                         }
                     }else write(tcp_s_fd, buf, strlen(buf)); // send to suc
                     
@@ -773,7 +812,7 @@ int main(int argc, char *argv[]){
                     sscanf(buf, "%s %s %s %s %s %s", command.opt, command.searched_key, command.n_seq, command.ID, command.IP, command.PORT);
                     if(atoi(command.searched_key)==atoi(ring.me.ID)){
                         if(/*EFND*/store_finds[atoi(command.n_seq)].mode){
-                            printf("RECEBI UM EFND\n");
+                            //printf("RECEBI UM EFND\n");
                             //* mandar para o nó que mandou o ENFD
                             //* EPRED pred pred.IP pred.PORT
                             sprintf(buf, "%s %s %s %s", "EPRED", command.ID, command.IP, command.PORT);
@@ -782,11 +821,12 @@ int main(int argc, char *argv[]){
                             inet_pton(AF_INET, store_finds[atoi(command.n_seq)].addr, &udp_s_addr.sin_addr);
                             //htons
                             //store_finds[n_seq].port=ntohs(udp_s_addr.sin_port);
+                            store_finds[atoi(command.n_seq)].key_to_find=-1;
                             udp_s_addr.sin_port = htons(store_finds[atoi(command.n_seq)].port);
                             if(sendto(udp_s_fd,buf, strlen(buf),0, (const struct sockaddr * ) &udp_s_addr, len)!=-1){
                                 recvfrom(udp_s_fd, buf, 4,0,(struct sockaddr * ) &udp_s_addr, &len);
                                 if(strcmp(buf,"ACK")!=0){
-                                    printf("Missing ACK when sending FIND to chord(3)\n");
+                                    printf("Missing ACK when sending EPDRED to chord(3)\n");
                                     strcat(buf,"\n\0");
                                 }
                             }else printf("Error on sendto\n");
@@ -797,9 +837,17 @@ int main(int argc, char *argv[]){
                             store_finds[atoi(command.n_seq)].key_to_find=-1;
                         }
                     }else{
-                        write(tcp_s_fd, buf, strlen(buf));
+                         if((udp_c_fd!=0) &&/*chord is closer to key*/(!check_if_key_is_mine(ring.suc.ID, ring.chord.ID,command.searched_key))){
+                            send(udp_c_fd, buf, strlen(buf),0);
+                            recv(udp_c_fd, buf, 4,0);
+                            if(strcmp(buf,"ACK")!=0){
+                                printf("Missing ACK when sending FIND to chord(4)\n");
+                                strcat(buf,"\n\0");
+                                write(tcp_s_fd,buf,strlen(buf));
+                            }
+                        }    
+                        else write(tcp_s_fd, buf, strlen(buf));
                     }
-
                 }
             }else{
                 close(tcp_c_fd);

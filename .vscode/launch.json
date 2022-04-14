@@ -7,7 +7,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/ring",
       "args": [
-        "22",
+        "1",
         "127.0.0.1",
         "58004"
       ],
