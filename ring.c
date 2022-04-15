@@ -494,7 +494,7 @@ int main(int argc, char *argv[]){
                 ring_created=0;
                 leave=true;
                 /* Envio de um "PRED" i i.IP i.port\n ao meu sucessor
-                sendo i o meu predecessor */
+                sendo i o meu predecessor atual */
                 sprintf(buf, "%s %s %s %s\n", "PRED",ring.pred.ID,ring.pred.IP,ring.pred.PORT);
                 write(tcp_s_fd, buf, strlen(buf));
                  /*Fecho de todas as sockets do nó que deu leave*/
@@ -767,7 +767,7 @@ int main(int argc, char *argv[]){
                    
                         if(ring_created){ /*Anel está criado*/
                             if(alone_in_a_ring != 0){  /*Receção do SELF por parte do nó i que tem um sucessor u diferente do próprio */
-                            /* Se o nó não está sozinho no anel é enviado um PRED ao sucessor u do nó i */
+                            /* Se o nó não está sozinho no anel é enviado um PRED ao sucessor u do nó i com a informação do novo nó*/
                                 sprintf(buf, "%s %s %s %s\n", "PRED",command.ID,command.IP,command.PORT);         
                                 write(tcp_s_fd, buf, strlen(buf));  
                                 close(tcp_s_fd); /*Fecho da ligação entre i e u (s(i))*/
@@ -819,8 +819,6 @@ int main(int argc, char *argv[]){
                 if(n==-1){
                     printf("Error in read\n");
                 }
-
-                //*Receção do novo pred nesta mensagem
                 
                 if(buf[0]=='P'){ /*Receção do "PRED" */
                     string_to_command(buf, &command);
@@ -828,11 +826,12 @@ int main(int argc, char *argv[]){
 
                     if(ring_created){
                         
-                            /*u (s(i)) atualiza o seu pred para j*/
+                            /*Pentry: u (s(i)) atualiza o seu pred para j*/
+                            /*Leave: s(j) atualiza o seu pred */
                             strcpy(ring.pred.ID,command.ID);
                             strcpy(ring.pred.IP, command.IP);
                             strcpy(ring.pred.PORT, command.PORT);
-                            close(tcp_c_fd); /*u fecha anel com j */
+                            close(tcp_c_fd); /*s(i) fecha anel com j */
                             tcp_c_fd=0;
                             int temp_fd; 
                             /*Criação de um novo cliente tcp para envio do "SELF"*/ 
